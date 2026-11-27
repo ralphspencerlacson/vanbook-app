@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AuthForm } from "@/components/auth-form";
 import { AuthCardContent } from "@/components/auth-shell";
 import { safeNext } from "@/lib/auth/forms";
+import { redirectSignedIn } from "@/lib/auth/guest";
 
 const notices: Record<string, string> = {
   "operator-pending":
@@ -18,6 +19,7 @@ const notices: Record<string, string> = {
 
 async function SignInContent({ searchParams }: PageProps<"/sign-in">) {
   const params = await searchParams;
+  await redirectSignedIn(params.next);
   const notice =
     typeof params.notice === "string" ? notices[params.notice] : undefined;
   return (

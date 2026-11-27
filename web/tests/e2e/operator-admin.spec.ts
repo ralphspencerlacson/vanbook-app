@@ -122,6 +122,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await expect(
     registration.getByLabel("Insurance (CTPL + passenger) (optional)"),
   ).toBeVisible();
+  await registration.locator(".operator-registration-document").filter({ hasText: "Insurance (CTPL + passenger)" }).getByText("Instructions", { exact: true }).click();
   await expect(
     registration.getByText("Upload a readable insurance certificate."),
   ).toBeVisible();
@@ -286,6 +287,7 @@ test("roles separate customer, pending operator and administrator access, with a
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/operator$/);
   await request.post(fixture + "/test/operator/approve");
+  await signOut(page);
   await signIn(page, operatorEmail, "/operator/requests");
   await expect(
     page.getByRole("heading", { name: "Requests", exact: true }),

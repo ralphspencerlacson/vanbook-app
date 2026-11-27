@@ -16,6 +16,10 @@ export function AuthAccessCard({ children }: { children: React.ReactNode }) {
     const inner = content.current!;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let previous = inner.getBoundingClientRect();
+    let initialized = !!inner.querySelector("form");
+    let viewportWidth = window.innerWidth;
+    let viewportHeight = window.innerHeight;
+    let rootFontSize = getComputedStyle(document.documentElement).fontSize;
     let resize: Animation | undefined;
 
     const stop = () => resize?.cancel();
@@ -27,12 +31,24 @@ export function AuthAccessCard({ children }: { children: React.ReactNode }) {
         : previous.height;
       const widthChanged = Math.abs(next.width - previous.width) > 1;
       const heightChanged = Math.abs(next.height - previous.height) > 0.5;
+      const currentFontSize = getComputedStyle(document.documentElement).fontSize;
+      const viewportChanged = viewportWidth !== window.innerWidth ||
+        viewportHeight !== window.innerHeight || rootFontSize !== currentFontSize;
+      viewportWidth = window.innerWidth;
+      viewportHeight = window.innerHeight;
+      rootFontSize = currentFontSize;
       previous = next;
+      // The first verified form should appear at its natural size. Animate
+      // subsequent tab/message changes, not the initial session-check fallback.
+      if (!initialized) {
+        initialized = !!inner.querySelector("form");
+        return;
+      }
       if (!heightChanged && !widthChanged) return;
       stop();
       resize = undefined;
       // Keep viewport resizing and text zoom immediate and fully accessible.
-      if (motion.matches || widthChanged || !heightChanged) return;
+      if (motion.matches || widthChanged || viewportChanged || !heightChanged) return;
       const animation = container.animate(
         [{ height: `${from}px` }, { height: `${next.height}px` }],
         { duration: 320, easing: "cubic-bezier(.22, 1, .36, 1)" },

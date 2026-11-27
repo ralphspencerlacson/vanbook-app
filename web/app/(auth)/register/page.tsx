@@ -1,6 +1,10 @@
+import { Suspense } from "react";
 import { AuthCardContent } from "@/components/auth-shell";
 import { CustomerRegistrationPreview } from "@/components/customer-registration-preview";
-export default function RegisterPage() {
+import { redirectSignedIn } from "@/lib/auth/guest";
+
+async function RegistrationContent() {
+  await redirectSignedIn();
   return (
     <AuthCardContent
       title="Create your account"
@@ -8,5 +12,13 @@ export default function RegisterPage() {
     >
       <CustomerRegistrationPreview />
     </AuthCardContent>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<p role="status">Checking your session…</p>}>
+      <RegistrationContent />
+    </Suspense>
   );
 }

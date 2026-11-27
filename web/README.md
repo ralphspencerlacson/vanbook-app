@@ -63,7 +63,14 @@ client. A server client must never be shared between requests or put inside a
 `use cache` scope. Any future auth Route Handler that refreshes sessions must
 return a private, non-cacheable response.
 
-The proxy is session plumbing, not an authorization guard. Future private
+The proxy redirects missing sessions away from private routes before rendering
+and sends signed-in visitors away from Log in and Sign up to their role's home.
+Guest pages also verify the session on the server. Public headers show the
+appropriate dashboard link (or Profile for customers) and Sign out once verified.
+The initial operator session check uses the animated van; its shared layout
+remains in place during tab navigation.
+
+The proxy is not the sole authorization guard. Private
 operations must verify identity using `auth.getClaims()` or `auth.getUser()` and
 enforce ownership through database RLS. Do not authorize using `getSession()` or
 editable user metadata. The account page verifies the current user on the

@@ -14,6 +14,7 @@ test("account tabs preserve the van and smoothly resize the shared card", async 
   const van = await page.locator(".auth-promo .van-scene-vehicle").elementHandle();
   const drive = await van!.evaluateHandle((node) => node.getAnimations()[0]);
   const viewport = page.locator(".auth-card-viewport");
+  await expect.poll(() => viewport.evaluate((node) => node.getAnimations().length)).toBe(0);
   const initialHeight = (await viewport.boundingBox())!.height;
 
   // Sample actual layout through the navigation, including intermediate heights.

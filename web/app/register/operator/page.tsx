@@ -5,6 +5,7 @@ import { OperatorRegistrationForm } from "@/components/operator-registration-for
 import { OperatorRegistrationLoading } from "@/components/operator-registration-loading";
 import { createAdminClient, hasAdminKey } from "@/lib/supabase/admin";
 import type { DocumentRequirement } from "@/lib/operators/types";
+import { redirectSignedIn } from "@/lib/auth/guest";
 function RegistrationHeading() {
   return (
     <header className="operator-page-heading">
@@ -19,6 +20,7 @@ function RegistrationHeading() {
 }
 async function Registration() {
   await connection();
+  await redirectSignedIn();
   if (!hasAdminKey())
     return (
       <div className="operator-registration-unavailable">

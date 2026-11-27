@@ -70,6 +70,20 @@
   gap: 12px;
   font-size: 12px;
 }
+.site-account-loading {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.site-account-loading .skeleton-block {
+  width: 62px;
+  height: 30px;
+}
+.site-header-actions > div > .primary-button {
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 11px;
+}
 .site-button,
 .site-outline-button,
 .site-quiet-button {

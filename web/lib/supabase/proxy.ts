@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseConfig } from "./env";
+import { canEnter, destinationFor, readAccess } from "@/lib/auth/access";
+import { safeNext } from "@/lib/auth/forms";
 
 export async function updateSession(request: NextRequest) {
   const { url, publishableKey } = getSupabaseConfig();
@@ -35,12 +37,53 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Verify/refresh before rendering. This is session plumbing, not an access
-  // guard: private operations must also verify identity and enforce RLS.
-  await supabase.auth.getClaims();
+  // Refresh and verify the token before rendering. Pages/actions still verify
+  // the current user and role, and private data remains protected by RLS.
+  const { data } = await supabase.auth.getClaims();
+  function redirectTo(path: string) {
+    const redirect = NextResponse.redirect(new URL(path, request.url));
+    // Preserve refreshed/cleared session cookies even when changing routes.
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    redirect.headers.set("Cache-Control", "private, no-store, max-age=0");
+    redirect.headers.set("Pragma", "no-cache");
+    redirect.headers.set("Referrer-Policy", "no-referrer");
+    return redirect;
+  }
+  const privateRoute = /^\/(account|operator|admin)(\/|$)/.test(
+    request.nextUrl.pathname,
+  );
+  if (privateRoute && !data?.claims?.sub) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/sign-in";
+    destination.search = "";
+    destination.searchParams.set(
+      "next", request.nextUrl.pathname + request.nextUrl.search,
+    );
+    destination.searchParams.set("notice", "session-expired");
+    return redirectTo(destination.pathname + destination.search);
+  }
+
+  const guestRoute = [
+    "/sign-in", "/sign-in/password", "/register", "/register/operator",
+  ].includes(request.nextUrl.pathname);
+  if (request.method === "GET" && guestRoute && data?.claims?.sub) {
+    const { data: identity } = await supabase.auth.getUser();
+    if (identity.user?.email_confirmed_at) {
+      let access;
+      try {
+        access = await readAccess(supabase);
+      } catch {
+        // The page's verified account guard displays the recovery error.
+      }
+      if (access && canEnter(access))
+        return redirectTo(destinationFor(
+          access, safeNext(request.nextUrl.searchParams.get("next")),
+        ));
+    }
+  }
 
   if (
-    /^\/(account|auth|register|sign-in|forgot-password|reset-password|operator|admin)(\/|$)/.test(
+    data?.claims?.sub || /^\/(account|auth|register|sign-in|forgot-password|reset-password|operator|admin)(\/|$)/.test(
       request.nextUrl.pathname,
     )
   ) {

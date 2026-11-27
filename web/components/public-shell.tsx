@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { BrandMark } from "./brand-mark";
 import { SignOutButton } from "./sign-out-button";
+import { Suspense } from "react";
+import { PublicAccountActions, PublicAccountLoading } from "./public-account-actions";
+import { SessionRefresh } from "./session-refresh";
 
 export function PublicHeader({
   operator = false,
@@ -28,12 +31,9 @@ export function PublicHeader({
                   <SignOutButton />
                 </>
               ) : (
-                <Link
-                  href="/sign-in?next=%2Foperator"
-                  className="site-quiet-button"
-                >
-                  Operator log in
-                </Link>
+                <Suspense fallback={<PublicAccountLoading />}>
+                  <PublicAccountActions operator />
+                </Suspense>
               )}
             </div>
           </>
@@ -46,13 +46,9 @@ export function PublicHeader({
               <Link href="/register/operator">For operators</Link>
             </nav>
             <div className="site-header-actions">
-              <Link href="/sign-in">Log in</Link>
-              <Link href="/register" className="site-outline-button">
-                Sign up
-              </Link>
-              <Link href="/#get-quotes" className="site-button is-yellow">
-                Get quotes
-              </Link>
+              <Suspense fallback={<PublicAccountLoading />}>
+                <PublicAccountActions operator={false} />
+              </Suspense>
             </div>
           </>
         )}
@@ -112,6 +108,7 @@ export function PublicShell({
 }) {
   return (
     <div className={`public-site ${className}`}>
+      {!name && <SessionRefresh />}
       <PublicHeader operator={operator} name={name} />
       {children}
       {footer && <PublicFooter />}
