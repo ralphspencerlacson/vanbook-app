@@ -43,7 +43,7 @@ export function PublicHeader({
               <Link href="/#how-it-works">How it works</Link>
               <Link href="/#popular-routes">Popular routes</Link>
               <Link href="/#corporate">Corporate trips</Link>
-              <Link href="/register/operator">For operators</Link>
+              <Link href="/#for-operators">For operators</Link>
             </nav>
             <div className="site-header-actions">
               <Suspense fallback={<PublicAccountLoading />}>

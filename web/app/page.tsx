@@ -2,6 +2,8 @@ import Link from "next/link";
 import { PublicShell } from "@/components/public-shell";
 import { VanIllustration } from "@/components/van-illustration";
 import { LandingQuoteForm } from "@/components/landing-quote-form";
+import { Suspense } from "react";
+import { OperatorJoinActions } from "@/components/operator-join-actions";
 export default function Home() {
   return (
     <PublicShell className="landing-site">
@@ -153,21 +155,15 @@ export default function Home() {
               </Link>
             </article>
           </section>
-          <section className="landing-operator-cta">
+          <section className="landing-operator-cta" id="for-operators">
             <div>
               <h2>Own franchised vans? Join VANBOOK.</h2>
               <p>Register your business and vehicles for verification.</p>
             </div>
             <div>
-              <Link className="site-button is-yellow" href="/register/operator">
-                Register your vans
-              </Link>
-              <Link
-                className="site-outline-button"
-                href="/sign-in?next=%2Foperator"
-              >
-                Operator log in
-              </Link>
+              <Suspense fallback={<span className="skeleton-block landing-operator-action-loading" aria-label="Checking your account" role="status" />}>
+                <OperatorJoinActions />
+              </Suspense>
             </div>
           </section>
         </div>

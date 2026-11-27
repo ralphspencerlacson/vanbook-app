@@ -27,12 +27,14 @@
 }
 .landing-site .landing-section,
 .landing-site .landing-callouts,
+.landing-site .landing-operator-cta,
 .landing-site .landing-quote {
   scroll-margin-top: 96px;
 }
 @media (max-width: 560px) {
   .landing-site .landing-section,
   .landing-site .landing-callouts,
+  .landing-site .landing-operator-cta,
   .landing-site .landing-quote {
     scroll-margin-top: 128px;
   }
@@ -92,6 +94,56 @@
   display: inline-flex;
   gap: 8px;
   align-items: center;
+}
+.site-auth-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #e0e8eb;
+  border-radius: 10px;
+  background: #f1f5f5;
+}
+.site-auth-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 7px 13px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: background-color 160ms, color 160ms;
+}
+.site-auth-login {
+  color: #526b76;
+}
+.site-auth-login:hover {
+  color: #0e5053;
+  background: #e4eeec;
+}
+.site-auth-signup {
+  color: #0e5053;
+  background: #fff;
+  box-shadow: 0 1px 4px #12212b0a;
+}
+.site-auth-signup:hover {
+  background: #e8f2ef;
+}
+.site-header-actions > .site-button.is-yellow {
+  min-height: 42px;
+  border-radius: 10px;
+}
+.landing-operator-action-loading {
+  width: 190px;
+  min-height: 39px;
+}
+.landing-operator-cta .landing-operator-account-note {
+  max-width: 30ch;
+  margin-top: 0;
+  text-align: right;
 }
 .site-account-loading .skeleton-block {
   width: 62px;
@@ -190,6 +242,9 @@
   border: 1px solid #cddcdf;
   color: inherit;
   background: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-auth-actions a { transition: none; }
 }
 .site-quiet-button {
   background: #ffffff12;

@@ -45,13 +45,15 @@ export async function PublicAccountActions({ operator }: { operator: boolean }) 
   }
   return operator ? (
     <Link href="/sign-in?next=%2Foperator" className="site-quiet-button">
-      Operator log in
+      Log in
     </Link>
   ) : (
     <>
       <Link href="/#get-quotes" className="site-button is-yellow">Get quotes</Link>
-      <Link href="/sign-in">Log in</Link>
-      <Link href="/register" className="site-outline-button">Sign up</Link>
+      <nav className="site-auth-actions" aria-label="Account access">
+        <Link href="/sign-in" className="site-auth-login">Log in</Link>
+        <Link href="/register" className="site-auth-signup">Sign up</Link>
+      </nav>
     </>
   );
 }

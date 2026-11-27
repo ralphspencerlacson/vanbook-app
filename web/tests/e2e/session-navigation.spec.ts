@@ -129,4 +129,8 @@ test("administrator sessions skip guest forms and cannot be routed into an opera
   }
   await page.goto("/");
   await expect(page.locator(".site-header").getByRole("link", { name: "Go to admin dashboard", exact: true })).toBeVisible();
+  await page.locator(".site-header").getByRole("link", { name: "For operators", exact: true }).click();
+  await expect(page).toHaveURL(/\/#for-operators$/);
+  await expect(page.getByRole("heading", { name: "Own franchised vans? Join VANBOOK." })).toBeInViewport();
+  await expect(page.getByRole("link", { name: "Review operator applications", exact: true })).toHaveAttribute("href", "/admin");
 });
