@@ -83,8 +83,9 @@ Target project: `pphyhsdpdsycfaleflyv`.
 
 The initial SQL Editor inspection on 27 November 2026 found no application
 tables or storage buckets. The application schema has since been created through
-the three versioned SQL files in `../supabase/migrations`, all recorded as applied
-on that date. Generated public-schema types are in `lib/supabase/database.types.ts`.
+the first three versioned SQL files in `../supabase/migrations`, recorded as applied
+on that date. The fourth migration adds protected operator contact updates for the
+My account modal. Generated public-schema types are in `lib/supabase/database.types.ts`.
 
 Follow [the hosted setup guide](../supabase/README.md) for a new project. Keep
 `../supabase/bootstrap-admin.sql` for explicitly assigning the initial super admin
@@ -162,7 +163,7 @@ server-side role checks and RLS ownership restrictions.
 `/admin/users` lists all users with email search and role filters. Only the
 super admin can invite administrators. Agent access is reserved and disabled.
 
-Use all three migrations in order as documented in [the hosted setup guide](../supabase/README.md).
+Use all four migrations in order as documented in [the hosted setup guide](../supabase/README.md).
 All are applied on the hosted project; do not rerun the initial migration.
 Run bootstrap-admin.sql after setup for admin@vanbook.ph. The app uses one
 public.users profile/role table, plus prefixed operator tables. Workspaces stack

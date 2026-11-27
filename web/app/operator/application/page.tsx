@@ -38,7 +38,8 @@ async function Content() {
             ))}
           </dl>
           <p className="operator-muted">
-            Contact administration to change an approved business profile.
+            Update your contact details from My account. Contact administration
+            to change approved business details.
           </p>
         </section>
       )}

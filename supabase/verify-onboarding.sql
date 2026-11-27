@@ -9,6 +9,7 @@ select jsonb_pretty(jsonb_build_object(
  'authenticated_can_change_roles',has_column_privilege('authenticated','public.users','role','UPDATE'),
  'authenticated_can_self_approve',has_column_privilege('authenticated','public.operator_applications','status','UPDATE'),
  'anonymous_can_read_user_emails',has_column_privilege('anon','public.users','email','SELECT'),
- 'browser_can_provision_admins',has_function_privilege('authenticated','public.reserve_admin_invitation(text,uuid)','EXECUTE')
+ 'browser_can_provision_admins',has_function_privilege('authenticated','public.reserve_admin_invitation(text,uuid)','EXECUTE'),
+ 'anonymous_can_update_operator_contacts',has_function_privilege('anon','public.update_operator_contact_profile(integer,text,text,text)','EXECUTE')
 )) as setup_checks;
 select id,email,full_name,role,email_confirmed_at,created_at from public.users order by created_at;

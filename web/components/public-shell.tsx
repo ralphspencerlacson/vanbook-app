@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { PublicAccountActions, PublicAccountLoading } from "./public-account-actions";
 import { SessionRefresh } from "./session-refresh";
 import { PublicNavigation } from "./public-navigation";
+import { AccountProfileButton } from "./account-profile-button";
 
 export function PublicHeader({
   operator = false,
@@ -28,7 +29,7 @@ export function PublicHeader({
               </Link>
               {name ? (
                 <>
-                  <span className="site-account-name">{name}</span>
+                  <AccountProfileButton variant="operator" label={name} />
                   <SignOutButton iconOnly />
                 </>
               ) : (

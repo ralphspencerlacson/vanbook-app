@@ -15,10 +15,11 @@ For a new project without VANBOOK application tables:
    transaction. Existing Auth accounts receive public user profiles. It does
    not clear existing tables or restore admin permissions automatically.
 2. Run `20261127000200_document_checklist.sql`, followed by
-   `20261127000300_operator_portal.sql`. Create/verify **admin@vanbook.ph** under Authentication > Users if needed, then
+   `20261127000300_operator_portal.sql`, then
+   `20261128000100_account_profile.sql`. Create/verify **admin@vanbook.ph** under Authentication > Users if needed, then
    run `bootstrap-admin.sql` to explicitly grant that account super_admin.
 3. Run `verify-onboarding.sql`. After bootstrap, the first six checks should be
-   true and the last four privilege checks false. The second result lists users.
+   true and the last five privilege checks false. The second result lists users.
 4. Sign in through `/sign-in`. Management is at `/admin`; all accounts and roles
    are listed under `/admin/users`.
 
@@ -54,6 +55,21 @@ or expiry workflow.
 
 If a transaction fails, run `ROLLBACK;` when needed, correct the error, and retry
 that full file on the intended new database. Never change ownership of auth.users.
+
+## Account contact details
+
+`migrations/20261128000100_account_profile.sql` adds the owner-checked
+`update_operator_contact_profile` RPC. Verified operators can update their name,
+mobile number, and contact email from My account, including after approval.
+The RPC requires the current application version, preserves approval/document
+reviews, updates the operator timestamp, and records an audit event. It accepts
+no user/application ID and grants no direct browser updates to contact fields or
+roles. Contact email is separate from the Auth sign-in email.
+
+Contact-name changes also update `public.users.full_name`. Auth profile sync
+preserves the operator's current contact name rather than restoring old metadata.
+Administrators see read-only account details in the same modal.
+This migration was applied to the hosted project on 2026-11-28.
 
 ## Final tables
 

@@ -10,6 +10,7 @@ import "./operator.css";
 import "./motion.css";
 import "./loading.css";
 import "./operator-registration.css";
+import "./account-profile.css";
 import { LoginTransitionProvider } from "@/components/login-transition";
 
 const geistSans = Geist({

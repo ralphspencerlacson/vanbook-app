@@ -4,6 +4,7 @@ import { AdminNavigation } from "./admin-navigation";
 import { SessionRefresh } from "./session-refresh";
 import { SignOutButton } from "./sign-out-button";
 import { LoginArrival } from "./login-transition";
+import { AccountProfileButton } from "./account-profile-button";
 
 export function AdminFrame({
   waiting,
@@ -25,12 +26,7 @@ export function AdminFrame({
         </div>
         <AdminNavigation waiting={waiting} />
         <div className="admin-sidebar-footer">
-          <Link href="/account" className="admin-profile">
-            <span className="admin-avatar">VB</span>
-            <span>
-              Administrator<small>Manage your account</small>
-            </span>
-          </Link>
+          <AccountProfileButton variant="admin" />
           <SignOutButton />
           <Link href="/" className="admin-back-link">
             ← Back to VANBOOK

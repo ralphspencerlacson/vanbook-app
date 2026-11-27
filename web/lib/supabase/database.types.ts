@@ -536,6 +536,15 @@ export type Database = {
         Args: { p_id: string; p_status: string; p_version: number }
         Returns: undefined
       }
+      update_operator_contact_profile: {
+        Args: {
+          p_contact_email: string
+          p_name: string
+          p_phone: string
+          p_version: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

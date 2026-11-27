@@ -52,6 +52,9 @@ await db.exec(
     "utf8",
   ),
 );
+await db.exec(await readFile(new URL(
+  "../../../supabase/migrations/20261128000100_account_profile.sql", import.meta.url,
+), "utf8"));
 export async function saveFixtureAuthUser(value) {
   await db.query(
     "insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb) on conflict(id) do update set email=excluded.email,email_confirmed_at=excluded.email_confirmed_at,raw_user_meta_data=excluded.raw_user_meta_data",
@@ -295,6 +298,11 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
       }
       if (url.pathname.startsWith("/rest/v1/rpc/")) {
         const name = url.pathname.split("/").at(-1);
+        if (name === "update_operator_contact_profile")
+          return (await tx.query(
+            "select public.update_operator_contact_profile($1,$2,$3,$4) as value",
+            [body.p_version, body.p_name, body.p_phone, body.p_contact_email],
+          )).rows[0].value;
         if (name === "check_registration_limit")
           return (
             await tx.query(
