@@ -26,10 +26,13 @@
   min-height: 74px;
 }
 .site-brand-link {
+  display: flex;
+  align-items: center;
   text-decoration: none;
   flex-shrink: 0;
 }
 .site-header .welcome-brand {
+  line-height: 1;
   color: #163847;
   font-size: 19px;
   flex-wrap: nowrap;
@@ -525,6 +528,8 @@
   background: transparent;
 }
 .site-operator-label {
+  line-height: 1;
+  white-space: nowrap;
   color: #f5a524;
   font-size: 11px;
   font-weight: 700;
