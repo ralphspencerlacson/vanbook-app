@@ -1,0 +1,20 @@
+{
+  "schema_names": [
+    "auth",
+    "extensions",
+    "graphql",
+    "graphql_public",
+    "public",
+    "realtime",
+    "storage",
+    "vault"
+  ],
+  "public_columns": [],
+  "public_indexes": [],
+  "storage_buckets": [],
+  "public_functions": [],
+  "public_relations": [],
+  "public_constraints": [],
+  "public_table_grants": [],
+  "public_and_storage_policies": []
+}

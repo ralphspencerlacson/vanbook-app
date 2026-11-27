@@ -6,14 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "check:supabase": "node scripts/check-supabase.mjs",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.2",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "@next/env": "^16.4.6",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -21,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   }
 }
