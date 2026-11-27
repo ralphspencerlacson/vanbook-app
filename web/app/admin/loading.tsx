@@ -1,4 +1,4 @@
-import { VanLoadingScreen } from "@/components/van-loading-screen";
+import { WorkspaceLoading } from "@/components/workspace-shell";
 export default function Loading() {
-  return <VanLoadingScreen />;
+  return <WorkspaceLoading />;
 }

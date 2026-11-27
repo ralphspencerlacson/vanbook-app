@@ -3,17 +3,12 @@ import { BrandMark } from "./brand-mark";
 import { AdminNavigation } from "./admin-navigation";
 import { SessionRefresh } from "./session-refresh";
 import { SignOutButton } from "./sign-out-button";
+import { LoginArrival } from "./login-transition";
 
-export function AdminShell({
-  title,
-  description,
-  toolbar,
+export function AdminFrame({
   waiting,
   children,
 }: {
-  title: string;
-  description?: string;
-  toolbar?: React.ReactNode;
   waiting?: number;
   children: React.ReactNode;
 }) {
@@ -43,15 +38,34 @@ export function AdminShell({
         </div>
       </aside>
       <main id="admin-content" className="admin-content">
-        <header className="admin-heading">
-          <div>
-            <h1>{title}</h1>
-            {description && <p>{description}</p>}
-          </div>
-          {toolbar}
-        </header>
         {children}
       </main>
+    </div>
+  );
+}
+
+export function AdminShell({
+  title,
+  description,
+  toolbar,
+  children,
+}: {
+  title: string;
+  description?: string;
+  toolbar?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="admin-view">
+      <LoginArrival />
+      <header className="admin-heading">
+        <div>
+          <h1>{title}</h1>
+          {description && <p>{description}</p>}
+        </div>
+        {toolbar}
+      </header>
+      {children}
     </div>
   );
 }

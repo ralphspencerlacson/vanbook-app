@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LoginArrival } from "@/components/login-transition";
 
 export default function ErrorPage({
   reset,
@@ -10,6 +11,7 @@ export default function ErrorPage({
 }) {
   return (
     <main className="mx-auto w-full max-w-lg space-y-5 px-6 py-20">
+      <LoginArrival />
       <h1 className="text-2xl font-semibold">
         We couldn&apos;t load this page
       </h1>

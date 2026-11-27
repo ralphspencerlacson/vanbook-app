@@ -4,7 +4,7 @@ import { SignOutButton } from "./sign-out-button";
 import { SessionRefresh } from "./session-refresh";
 import { type ApplicationStatus, statusLabels } from "@/lib/operators/types";
 import { AdminShell } from "./admin-shell";
-import { VanLoadingScreen } from "./van-loading-screen";
+import { LoginArrival } from "./login-transition";
 
 export function WorkspaceShell({
   title,
@@ -28,6 +28,7 @@ export function WorkspaceShell({
     );
   return (
     <div className="workspace-page">
+      <LoginArrival />
       <SessionRefresh />
       <header className="workspace-header">
         <BrandMark />
@@ -74,7 +75,35 @@ export function StatusBadge({ status }: { status: ApplicationStatus }) {
   );
 }
 export function WorkspaceLoading() {
-  return <VanLoadingScreen />;
+  return (
+    <div className="workspace-loading" role="status" aria-live="polite" aria-busy="true">
+      <span className="sr-only">Loading workspace content…</span>
+      <div className="workspace-skeleton" aria-hidden="true">
+        <div className="workspace-skeleton-heading">
+          <span className="skeleton-block skeleton-title" />
+          <span className="skeleton-block skeleton-description" />
+        </div>
+        <div className="workspace-skeleton-metrics">
+          {[0, 1, 2, 3].map((item) => (
+            <div className="skeleton-card" key={item}>
+              <span className="skeleton-block skeleton-label" />
+              <span className="skeleton-block skeleton-value" />
+              <span className="skeleton-block skeleton-detail" />
+            </div>
+          ))}
+        </div>
+        <div className="workspace-skeleton-table">
+          {[0, 1, 2, 3, 4, 5].map((row) => (
+            <div className="skeleton-row" key={row}>
+              <span className="skeleton-block" />
+              <span className="skeleton-block" />
+              <span className="skeleton-block" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 export function WorkspaceUnavailable({ admin = false }: { admin?: boolean }) {
   return (

@@ -6,7 +6,7 @@ import { useState } from "react";
 
 const primary = [
   ["/admin", "Verification", "verification"],
-  ["/admin/bookings", "Bookings and escalations", "bookings"],
+  ["/admin/bookings", "Booking", "bookings"],
   ["/admin/fees", "Fee ledger", "fees"],
   ["/admin/complaints", "Complaints", "complaints"],
   ["/admin/reports", "Reports", "reports"],

@@ -1,3 +1,109 @@
+.app-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100svh;
+  transition: opacity 180ms ease;
+}
+.app-content[data-entering="true"] {
+  opacity: 0;
+}
+.login-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+}
+.login-transition::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #0e5053;
+  animation: login-fade-in 180ms ease both;
+}
+.login-transition .van-loading-screen {
+  position: relative;
+  height: 100%;
+  background: transparent;
+}
+.login-transition .van-loading-scene {
+  transform-origin: top left;
+}
+.login-transition .welcome-brand,
+.login-transition .van-loading-copy,
+.login-transition .van-loading-track {
+  animation: login-fade-in 180ms 250ms ease both;
+}
+.workspace-loading {
+  padding: 24px;
+  color: #64748b;
+  font-size: 14px;
+}
+.admin-content .workspace-loading {
+  padding: 0;
+}
+.workspace-skeleton {
+  width: 100%;
+  min-height: 400px;
+}
+.skeleton-block {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(100deg, #e5edef 30%, #f5f8f9 50%, #e5edef 70%);
+  background-size: 200% 100%;
+  animation: workspace-shimmer 1.6s linear infinite;
+}
+.workspace-skeleton-heading {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.skeleton-title { width: min(260px, 65%); height: 25px; }
+.skeleton-description { width: min(430px, 90%); height: 10px; }
+.workspace-skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.skeleton-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e7edef;
+}
+.skeleton-label { width: 75%; height: 10px; }
+.skeleton-value { width: 40%; height: 28px; }
+.skeleton-detail { width: 65%; height: 8px; }
+.workspace-skeleton-table {
+  margin-top: 20px;
+  border: 1px solid #e7edef;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr .6fr;
+  gap: 24px;
+  padding: 20px;
+}
+.skeleton-row + .skeleton-row { border-top: 1px solid #f0f4f5; }
+@keyframes workspace-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (max-width: 700px) {
+  .workspace-skeleton-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .skeleton-card { padding: 15px; }
+  .skeleton-row { gap: 14px; padding: 18px 15px; }
+}
+@keyframes login-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 .van-loading-screen {
   --welcome-yellow: #f5a524;
   --welcome-teal: #0e5053;
@@ -133,6 +239,18 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+  }
+  .app-content {
+    transition: none;
+  }
+  .login-transition::before,
+  .login-transition .welcome-brand,
+  .login-transition .van-loading-copy,
+  .login-transition .van-loading-track {
+    animation: none;
+  }
   .van-scene-animated .van-scene-vehicle,
   .van-scene-animated .van-scene-sun,
   .van-scene-animated .van-scene-road,

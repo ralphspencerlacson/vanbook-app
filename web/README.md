@@ -200,10 +200,16 @@ its metric is unavailable; uploaded files are labeled Uploaded, not Valid. Vehic
 counts are omitted if the existing 200-row management RPC may have been truncated.
 No production test data or new database migrations were added for this redesign.
 
-Admin route transitions and workspace Suspense boundaries show an SVG/CSS van
-loader: the van follows the rolling road, the road markings scroll, and the sun
-moves. The animation is responsive and becomes static with reduced-motion enabled.
-No GIF, additional image download, or artificial loading delay is used in the app.
+The sign-in illustration animates the van, road markings, and sun. After a
+successful admin/operator login, the scene moves from its position on the form
+to the center of the viewport in 450ms, then navigation begins. It stays visible
+until the authenticated workspace is ready. The admin sidebar lives in a shared
+layout and remains visible when switching tabs. Only the content area shows
+responsive card/table skeletons with a shimmer effect. Section errors also stay
+inside the content area with a retry button. Reduced-motion settings disable
+the movement and skip the centering transition. No GIF or extra image download
+is needed. Stylesheets are imported directly in the root layout so local dev
+tracks each stylesheet, including admin and loading styles.
 The browser fixture alone supplies sample operators and controlled delays for QA.
 
 Password recovery is available at `/forgot-password` and `/reset-password` using

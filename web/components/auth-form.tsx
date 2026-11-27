@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { register, resendConfirmation, signIn } from "@/app/auth/actions";
 import type { AuthResult } from "@/lib/auth/forms";
 import { useHydrated } from "./use-hydrated";
+import { useLoginTransition } from "./login-transition";
 
 export function AuthForm({
   mode,
@@ -17,6 +18,7 @@ export function AuthForm({
 }) {
   const registering = mode === "register";
   const hydrated = useHydrated();
+  const { enter } = useLoginTransition();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,7 +49,11 @@ export function AuthForm({
       if (response.redirectTo) {
         setPassword("");
         setConfirmPassword("");
-        window.location.assign(response.redirectTo);
+        if (!registering && (response.redirectTo === "/admin" || response.redirectTo.startsWith("/admin/"))) {
+          enter(response.redirectTo);
+        } else {
+          window.location.assign(response.redirectTo);
+        }
         return;
       }
       setResult(response);

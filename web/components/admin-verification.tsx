@@ -188,7 +188,6 @@ export async function AdminVerification({
     <AdminShell
       title="Operator verification"
       description="Review operator credentials, supporting documents, and business details before approval."
-      waiting={waiting.count ?? 0}
       toolbar={
         <form action="/admin" className="admin-search" role="search">
           <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">

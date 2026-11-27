@@ -153,7 +153,7 @@ test("password reset uses a verified session and changes the sign-in password", 
   await expect(page).toHaveURL(/\/account$/);
 });
 
-test("admin verification follows the prototype, saves decisions, and shows an accessible animated loader", async ({
+test("admin login centers the animated van once, then tabs skip it and verification saves decisions", async ({
   page,
   request,
 }) => {
@@ -161,14 +161,22 @@ test("admin verification follows the prototype, saves decisions, and shows an ac
   await page.setViewportSize({ width: 1440, height: 900 });
   await register(page, adminEmail, "/admin");
   await request.post(fixture + "/test/verification/seed");
+  await signOut(page);
+  await expect(page.locator(".auth-promo .van-scene-vehicle")).toHaveCSS("animation-name", "van-drive-wave");
+  await page.getByLabel("Email address", { exact: true }).fill(adminEmail);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await request.post(fixture + "/test/verification/slow");
-  await page.goto("/admin?status=all", { waitUntil: "commit" });
-  const loader = page.locator(".van-loading-screen").first();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  const loader = page.locator(".login-transition .van-loading-screen");
   await expect(loader).toBeVisible();
-  await expect(page.locator(".van-scene-vehicle").first()).toHaveCSS(
+  await expect(page.locator(".login-transition .van-scene-vehicle")).toHaveCSS(
     "animation-name",
     "van-drive-wave",
   );
+  await expect.poll(async () => {
+    const box = await page.locator(".login-transition .van-loading-scene").boundingBox();
+    return Math.abs(box!.x + box!.width / 2 - 720);
+  }).toBeLessThan(2);
   await page.screenshot({ path: "test-results/van-loading-desktop.png" });
   await page.setViewportSize({ width: 375, height: 812 });
   expect(
@@ -179,15 +187,18 @@ test("admin verification follows the prototype, saves decisions, and shows an ac
   await page.screenshot({ path: "test-results/van-loading-mobile.png" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(page.locator(".van-scene-vehicle").first()).toHaveCSS(
+  await expect(page.locator(".login-transition .van-scene-vehicle")).toHaveCSS(
     "animation-name",
     "none",
   );
   await expect(
     page.getByRole("heading", { name: "Operator verification", exact: true }),
   ).toBeVisible();
+  await expect(loader).not.toBeVisible();
   await request.post(fixture + "/test/verification/fast");
   await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/admin?status=all");
+  await expect(page.getByRole("heading", { name: "Operator verification", exact: true })).toBeVisible();
   const verification = page
     .getByRole("navigation", { name: "Administration" })
     .getByRole("link", { name: /Verification/ });
@@ -267,7 +278,7 @@ test("admin verification follows the prototype, saves decisions, and shows an ac
     page.getByRole("heading", { name: "Bayanihan Transport", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("link", { name: "Bookings and escalations", exact: true })
+    .getByRole("link", { name: "Booking", exact: true })
     .click();
   await expect(
     page.getByRole("heading", {
@@ -275,6 +286,38 @@ test("admin verification follows the prototype, saves decisions, and shows an ac
       exact: true,
     }),
   ).toBeVisible();
+  // Watch the entire tab change, including streamed loading fallbacks.
+  await page.evaluate(() => {
+    document.documentElement.dataset.sawVanLoader = "false";
+    new MutationObserver(() => {
+      if (document.querySelector(".van-loading-screen, .login-transition"))
+        document.documentElement.dataset.sawVanLoader = "true";
+    }).observe(document.body, { subtree: true, childList: true });
+  });
+  await request.post(fixture + "/test/verification/slow");
+  const sidebarBeforeNavigation = await page.locator(".admin-sidebar").elementHandle();
+  await verification.click();
+  const skeleton = page.locator("#admin-content .workspace-loading");
+  await expect(skeleton).toBeVisible();
+  await expect(page.locator(".admin-sidebar")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Administration" })).toBeVisible();
+  expect(await sidebarBeforeNavigation!.evaluate((node) => node === document.querySelector(".admin-sidebar"))).toBe(true);
+  await expect(skeleton.locator(".skeleton-block").first()).toHaveCSS("animation-name", "workspace-shimmer");
+  await page.screenshot({ path: "test-results/admin-content-loading-desktop.png" });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.locator(".admin-sidebar")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/admin-content-loading-mobile.png" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(skeleton.locator(".skeleton-block").first()).toHaveCSS("animation-name", "none");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByRole("heading", { name: "Operator verification", exact: true })).toBeVisible();
+  await expect(skeleton).not.toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator("html")).toHaveAttribute("data-saw-van-loader", "false");
+  await request.post(fixture + "/test/verification/fast");
+  await page.getByRole("link", { name: "Booking", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Bookings and escalations", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "This month", exact: true }).click();
   await expect(
     page.getByRole("link", { name: "This month", exact: true }),

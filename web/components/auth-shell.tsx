@@ -16,7 +16,7 @@ export function AuthShell({
       <div className="auth-layout">
         <section className="auth-promo" aria-label="Welcome to VANBOOK PH">
           <BrandMark />
-          <VanIllustration />
+          <VanIllustration animated />
           <h2>Legal, verified vans for group trips</h2>
           <p>
             Find the right van for your group. Travel together with confidence.
