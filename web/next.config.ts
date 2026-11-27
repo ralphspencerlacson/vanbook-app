@@ -28,8 +28,7 @@ const nextConfig: NextConfig = {
 
 export default function configureNext(phase: string): NextConfig {
   if (phase === PHASE_PRODUCTION_BUILD) {
-    // NEXT_PUBLIC_ values are embedded at build time. Reject a deployment with
-    // missing settings before its request proxy can fail on every page.
+    // Validate the server environment before its request proxy handles traffic.
     getSupabaseConfig();
     parseSiteUrl(process.env.SITE_URL, {
       allowLocal: process.env.VERCEL !== "1",

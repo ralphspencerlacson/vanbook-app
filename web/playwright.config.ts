@@ -20,8 +20,8 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         VANBOOK_E2E: "1",
-        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:3242",
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_local-test-only",
+        SUPABASE_URL: "http://127.0.0.1:3242",
+        SUPABASE_PUBLISHABLE_KEY: "sb_publishable_local-test-only",
         SITE_URL: "http://127.0.0.1:3241",
       },
     },

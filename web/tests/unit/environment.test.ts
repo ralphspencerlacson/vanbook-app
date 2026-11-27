@@ -8,22 +8,15 @@ import { getSupabaseConfig } from "@/lib/supabase/env";
 import { parseSiteUrl } from "@/lib/auth/site-origin";
 
 beforeEach(() => {
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
-  vi.stubEnv(
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-    "sb_publishable_fixture-only",
-  );
+  vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
+  vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_fixture-only");
   vi.stubEnv("SITE_URL", "https://vanbook.example");
   vi.stubEnv("VERCEL", "1");
 });
 afterEach(() => vi.unstubAllEnvs());
 
 describe("production deployment settings", () => {
-  it.each([
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-    "SITE_URL",
-  ])(
+  it.each(["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SITE_URL"])(
     "rejects missing %s during the build instead of publishing a broken app",
     (name) => {
       vi.stubEnv(name, "");
@@ -31,11 +24,8 @@ describe("production deployment settings", () => {
     },
   );
 
-  it("rejects a server secret in the browser key without echoing its value", () => {
-    vi.stubEnv(
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-      "sb_secret_fixture-only",
-    );
+  it("requires the publishable key for user-scoped clients without echoing a mistaken secret", () => {
+    vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "sb_secret_fixture-only");
     let message = "";
     try {
       configureNext(PHASE_PRODUCTION_BUILD);
@@ -51,9 +41,9 @@ describe("production deployment settings", () => {
     "https://example.supabase.co/auth/v1",
     "https://user:password@example.supabase.co",
     "https://example.supabase.co?key=fixture",
-  ])("rejects an invalid public project origin", (url) => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", url);
-    expect(() => getSupabaseConfig()).toThrow("NEXT_PUBLIC_SUPABASE_URL");
+  ])("rejects an invalid project origin", (url) => {
+    vi.stubEnv("SUPABASE_URL", url);
+    expect(() => getSupabaseConfig()).toThrow("SUPABASE_URL");
   });
 
   it("requires the real site origin on Vercel, while allowing localhost locally", () => {
@@ -70,8 +60,18 @@ describe("production deployment settings", () => {
     expect(configureNext(PHASE_PRODUCTION_BUILD).cacheComponents).toBe(true);
   });
 
+  it("uses server-side connection variables without any public-prefixed settings", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", undefined);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", undefined);
+    expect(getSupabaseConfig()).toEqual({
+      url: "https://example.supabase.co",
+      publishableKey: "sb_publishable_fixture-only",
+    });
+    expect(configureNext(PHASE_PRODUCTION_BUILD).cacheComponents).toBe(true);
+  });
+
   it("does not prevent starting local development before environment setup", () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("SUPABASE_URL", "");
     expect(configureNext(PHASE_DEVELOPMENT_SERVER).cacheComponents).toBe(true);
   });
 

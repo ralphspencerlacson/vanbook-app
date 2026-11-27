@@ -13,15 +13,16 @@ Copy-Item .env.example .env.local
 Skip the copy if `.env.local` already exists. In `.env.local`, set:
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://pphyhsdpdsycfaleflyv.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-project-publishable-key
+SUPABASE_URL=https://pphyhsdpdsycfaleflyv.supabase.co
+SUPABASE_PUBLISHABLE_KEY=your-project-publishable-key
 SITE_URL=http://localhost:3000
 ```
 
 Get the publishable key from the existing Supabase project's **Connect** dialog.
 Use an `sb_publishable_...` key. The environment file is ignored by Git; only the
 example is committed. Database passwords and secret/service-role keys are not
-needed by this app and must not be placed in public environment variables.
+needed for normal customer sign-in. SUPABASE_SECRET_KEY is server-only and is
+required for operator registration and admin invitations.
 
 ```powershell
 npm run check:supabase
@@ -29,27 +30,28 @@ npm run dev
 ```
 
 Open http://localhost:3000. Restart the development server after changing the
-environment. Public environment variables are embedded in browser bundles at
-build time, so deployments need these variables set before building.
+environment. Supabase connection settings are read on the server; no
+NEXT_PUBLIC_ variables or browser Supabase client are required.
 
 ## Production environment checks
 
-Production builds validate NEXT_PUBLIC_SUPABASE_URL,
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, and SITE_URL before generating pages.
+Production builds validate SUPABASE_URL,
+SUPABASE_PUBLISHABLE_KEY, and SITE_URL before generating pages.
 Missing or invalid configuration fails the build with the variable names,
 preventing deployment of a request proxy that returns 500 on every page.
 
-In Vercel, the two NEXT_PUBLIC_ variables and SITE_URL use visibility config.
-SUPABASE_SECRET_KEY is server-only and uses visibility secret; it is needed for
+SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are server-side variables without
+the NEXT_PUBLIC_ prefix; they can use visibility secret in Vercel. SITE_URL uses
+visibility config. SUPABASE_SECRET_KEY uses visibility secret and is needed for
 operator registration and administrator invitations, but optional for ordinary
 customer sign-in. SITE_URL must be the deployed HTTPS origin on Vercel.
-Environment updates require a new deployment because public values are embedded
-in the build. No environment values are committed or printed in validation errors.
+Environment updates require a new deployment. No connection values are committed,
+printed in validation errors, or embedded in the browser bundle.
 
 ## Supabase connection
 
 - `lib/supabase/env.ts`: validates configuration when a client is created.
-- `lib/supabase/client.ts`: cookie-based browser client.
+- Browser forms call authenticated server actions; there is no browser Supabase client.
 - `lib/supabase/server.ts`: request-specific server client using async `cookies()`.
 - `lib/supabase/proxy.ts` and `proxy.ts`: verify/refresh sessions before rendering,
   forward refreshed cookies to the request and response, and preserve the SDK's
@@ -173,8 +175,8 @@ public.users profile/role table, plus prefixed operator tables. Workspaces stack
 on mobile and use a sidebar/grid on desktop. No Docker service is required.
 
 Operator registration and admin invitations require a server-only
-SUPABASE_SECRET_KEY in the environment, in addition to the existing public
-Supabase variables and SITE_URL. The hosted schema was applied on 2026-11-27;
+SUPABASE_SECRET_KEY in the environment, in addition to the server-side
+Supabase connection variables and SITE_URL. The hosted schema was applied on 2026-11-27;
 email/SMTP and the first super-admin account remain to be configured. See the hosted guide for exact file order, templates, and checks.
 
 Password recovery is available at `/forgot-password` and `/reset-password` using

@@ -2,12 +2,12 @@ import nextEnv from "@next/env";
 
 nextEnv.loadEnvConfig(process.cwd(), true);
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_PUBLISHABLE_KEY;
 
 if (!url || !key) {
   console.error(
-    "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in web/.env.local.",
+    "Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in web/.env.local.",
   );
   process.exitCode = 1;
 } else {
@@ -20,7 +20,9 @@ if (!url || !key) {
     if (!response.ok) {
       throw new Error(`Supabase Auth returned HTTP ${response.status}.`);
     }
-    console.log("Supabase Auth connection and publishable key verified (HTTP 200).");
+    console.log(
+      "Supabase Auth connection and publishable key verified (HTTP 200).",
+    );
     console.log(
       "This check does not inspect database tables, RLS policies, or storage buckets.",
     );

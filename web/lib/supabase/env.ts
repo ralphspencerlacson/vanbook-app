@@ -1,12 +1,12 @@
 export function getSupabaseConfig() {
-  // Keep direct process.env references so Next.js can inline browser values.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const publishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  // Read only on the server or during build validation. Nothing is inlined into
+  // browser bundles; sign-in and document uploads run through server actions.
+  const url = process.env.SUPABASE_URL?.trim();
+  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
 
   if (!url || !publishableKey) {
     throw new Error(
-      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in the deployment environment (or web/.env.local for local development), then rebuild. NEXT_PUBLIC_ variables use visibility: config in Vercel.",
+      "Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in the deployment environment (or web/.env.local for local development), then redeploy.",
     );
   }
 
@@ -14,7 +14,7 @@ export function getSupabaseConfig() {
   try {
     parsedUrl = new URL(url);
   } catch {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL must be a valid project URL.");
+    throw new Error("SUPABASE_URL must be a valid project URL.");
   }
 
   const isLocal = ["localhost", "127.0.0.1", "[::1]"].includes(
@@ -25,7 +25,7 @@ export function getSupabaseConfig() {
     !(parsedUrl.protocol === "http:" && isLocal)
   ) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL must use HTTPS (HTTP is allowed for local Supabase).",
+      "SUPABASE_URL must use HTTPS (HTTP is allowed for local Supabase).",
     );
   }
 
@@ -37,13 +37,13 @@ export function getSupabaseConfig() {
     parsedUrl.hash
   ) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL must be the project origin without credentials, a path, query, or fragment.",
+      "SUPABASE_URL must be the project origin without credentials, a path, query, or fragment.",
     );
   }
 
   if (!publishableKey.startsWith("sb_publishable_")) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be a Supabase publishable key. Do not use a secret or service-role key.",
+      "SUPABASE_PUBLISHABLE_KEY must be a Supabase publishable key. Do not use a secret or service-role key.",
     );
   }
 

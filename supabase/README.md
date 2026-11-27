@@ -72,11 +72,13 @@ server limit is 10 MB per object. Booking/payment tables and rules are not inclu
 
 ## App environment and email
 
-Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and
 `SITE_URL` in Vercel. Operator registration and admin invitations also need
-**SUPABASE_SECRET_KEY**, a server-only secret. Never prefix it with NEXT_PUBLIC_
-and do not share its plaintext in chat. Standard customer sign-in uses the
-publishable key plus RLS. Keep Auth email confirmation enabled.
+**SUPABASE_SECRET_KEY**, a server-only secret. All Supabase connection settings
+are server-side and have no NEXT_PUBLIC_ prefix; use visibility secret for keys
+in Vercel and visibility config for SITE_URL. Do not share secret values in chat.
+Standard customer sign-in uses the publishable key plus RLS through server
+actions. Keep Auth email confirmation enabled.
 
 Use the confirmation and password-reset templates in `templates`; allow the app
 callback URLs in Authentication URL Configuration. For staff invitations, install
