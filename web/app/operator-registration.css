@@ -382,3 +382,105 @@
 @media (prefers-reduced-motion: reduce) {
   .operator-service-area-options button { transition: none; }
 }
+
+.registration-skeleton-label {
+  width: 58%;
+  height: 9px;
+  margin-block: 3px 7px;
+}
+form.operator-registration-layout {
+  animation: registration-form-reveal 200ms ease-out;
+}
+@keyframes registration-form-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.registration-skeleton-input {
+  width: 100%;
+  height: 36px;
+  border-radius: 7px;
+}
+.registration-skeleton-service-areas {
+  margin-top: 13px;
+}
+.registration-skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.registration-skeleton-chips > span {
+  width: 62px;
+  height: 29px;
+  border-radius: 20px;
+}
+.registration-skeleton-description {
+  width: 85%;
+  height: 8px;
+  margin-top: 8px;
+}
+.registration-skeleton-progress {
+  height: 5px;
+  margin-bottom: 8px;
+}
+.registration-skeleton-document-name {
+  width: 72%;
+  height: 10px;
+}
+.registration-skeleton-badge {
+  width: 74px;
+  height: 18px;
+}
+.registration-skeleton-button {
+  width: 66px;
+  height: 30px;
+}
+.registration-skeleton-photo {
+  height: 77px;
+  border-radius: 8px;
+}
+.registration-skeleton-agreement {
+  width: 90%;
+  height: 12px;
+  margin-block: 14px;
+}
+.registration-skeleton-agreement + .registration-skeleton-agreement {
+  width: 75%;
+}
+.registration-skeleton-submit {
+  width: 140px;
+  height: 36px;
+  margin-top: 16px;
+  border-radius: 8px;
+}
+.registration-skeleton-checklist-line {
+  width: 75%;
+  height: 9px;
+}
+.registration-skeleton-checklist-note {
+  height: 55px;
+  margin-top: 14px;
+  border-radius: 8px;
+}
+@media (max-width: 560px) {
+  .registration-skeleton-input { height: 41px; }
+  .operator-registration-page .registration-skeleton-fields > div:last-child {
+    grid-column: auto;
+  }
+  .registration-skeleton .registration-skeleton-document-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .registration-skeleton .registration-skeleton-badge {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .registration-skeleton .registration-skeleton-button {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    height: 36px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  form.operator-registration-layout { animation: none; }
+}

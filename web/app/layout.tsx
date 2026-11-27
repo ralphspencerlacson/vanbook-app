@@ -7,9 +7,9 @@ import "./requirements.css";
 import "./users.css";
 import "./site.css";
 import "./operator.css";
-import "./operator-registration.css";
 import "./motion.css";
 import "./loading.css";
+import "./operator-registration.css";
 import { LoginTransitionProvider } from "@/components/login-transition";
 
 const geistSans = Geist({

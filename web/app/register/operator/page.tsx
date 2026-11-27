@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { PublicShell } from "@/components/public-shell";
 import { OperatorRegistrationForm } from "@/components/operator-registration-form";
+import { OperatorRegistrationLoading } from "@/components/operator-registration-loading";
 import { createAdminClient, hasAdminKey } from "@/lib/supabase/admin";
 import type { DocumentRequirement } from "@/lib/operators/types";
 function RegistrationHeading() {
@@ -55,10 +56,7 @@ export default function Page() {
     <PublicShell operator className="operator-registration-site" footer={false}>
       <main className="site-container operator-registration-page">
         <Suspense fallback={
-          <div>
-            <RegistrationHeading />
-            <p role="status">Loading registration…</p>
-          </div>
+          <OperatorRegistrationLoading heading={<RegistrationHeading />} />
         }>
           <Registration />
         </Suspense>
