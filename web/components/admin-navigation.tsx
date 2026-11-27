@@ -90,7 +90,7 @@ export function AdminNavigation({ waiting }: { waiting?: number }) {
         <p className="admin-nav-caption">MANAGEMENT</p>
         <div className="admin-nav-group">
           {[
-            ["/admin/documents", "Document checklist"],
+            ["/admin/documents", "Documents"],
             ["/admin/users", "Users"],
           ].map(([href, label]) => (
             <Link

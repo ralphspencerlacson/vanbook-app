@@ -15,9 +15,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   test.setTimeout(60000);
   await request.post(fixture + "/test/checklist/seed");
   await register(page, adminEmail, "/admin");
-  await page
-    .getByRole("link", { name: "Document checklist", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Documents", exact: true }).click();
   await expect(page.getByRole("table")).toBeVisible();
   const insurance = page
     .getByRole("row")
@@ -62,9 +60,25 @@ test("document checklist uses a table and row edit drawer, and drives registrati
     .fill("insurance");
   await expect(page.locator(".requirements-table tbody tr")).toHaveCount(1);
   await page.getByRole("searchbox", { name: "Search requirements" }).fill("");
-  await page.getByLabel("Filter requirements").selectOption("inactive");
+  await page.getByLabel("Filter by visibility").selectOption("inactive");
   await expect(page.locator(".requirements-table tbody tr")).toHaveCount(1);
-  await page.getByLabel("Filter requirements").selectOption("all");
+  await page.getByLabel("Filter by submission rule").selectOption("optional");
+  await expect(page.locator(".requirements-table tbody tr")).toHaveCount(0);
+  await page.getByLabel("Filter by submission rule").selectOption("required");
+  await expect(page.locator(".requirements-table tbody tr")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Clear filters", exact: true })
+    .click();
+  await page.getByLabel("Filter by submission rule").selectOption("optional");
+  await page.getByLabel("Filter by visibility").selectOption("active");
+  await page.getByLabel("Sort documents").selectOption("name_desc");
+  await expect(page.locator(".requirements-table tbody tr")).toHaveCount(3);
+  await expect(
+    page.locator(".requirements-table tbody tr").first(),
+  ).toContainText("Supporting document");
+  await page
+    .getByRole("button", { name: "Clear filters", exact: true })
+    .click();
   for (const width of [320, 375, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
@@ -161,6 +175,98 @@ async function signOut(page: Page) {
   await expect(page).toHaveURL(/notice=signed-out/);
 }
 
+test("users table combines role and email filters, searches names, and preserves pagination filters", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(60000);
+  await register(page, adminEmail, "/admin");
+  await request.post(fixture + "/test/users/seed");
+  await page.getByRole("link", { name: "Users", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "User accounts (32)" }),
+  ).toBeVisible();
+  await expect(page.locator(".users-table tbody tr")).toHaveCount(25);
+  await page.getByRole("link", { name: "Next →", exact: true }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.locator(".users-table tbody tr")).toHaveCount(7);
+  await page
+    .getByLabel("Account role", { exact: true })
+    .selectOption("operator");
+  await page
+    .getByLabel("Email status", { exact: true })
+    .selectOption("unverified");
+  await page.getByLabel("Sort users", { exact: true }).selectOption("oldest");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(page).not.toHaveURL(/page=2/);
+  await expect(
+    page.getByRole("heading", { name: "User accounts (3)" }),
+  ).toBeVisible();
+  await expect(page.locator(".users-table tbody tr").first()).toContainText(
+    "Directory Person 02",
+  );
+  await expect(page.locator(".user-verification.is-unverified")).toHaveCount(3);
+  await page
+    .getByRole("searchbox", { name: "Search users" })
+    .fill("Directory Person 12");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(page.locator(".users-table tbody tr")).toHaveCount(1);
+  await expect(page.locator(".users-table tbody tr")).toContainText(
+    "directory12@example.test",
+  );
+  await page.reload();
+  await expect(page.getByLabel("Account role", { exact: true })).toHaveValue(
+    "operator",
+  );
+  await expect(page.getByLabel("Email status", { exact: true })).toHaveValue(
+    "unverified",
+  );
+  await page.getByRole("link", { name: "Clear filters", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "User accounts (32)" }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Email status", { exact: true })
+    .selectOption("verified");
+  await page
+    .getByRole("searchbox", { name: "Search users" })
+    .fill("directory01@example.test");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(page.locator(".users-table tbody tr")).toHaveCount(1);
+  await expect(page.locator(".users-table tbody tr")).toContainText(
+    "Directory Person 01",
+  );
+  await expect(page.locator(".user-verification.is-verified")).toHaveCount(1);
+  await page.getByRole("link", { name: "Clear filters", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "User accounts (32)" }),
+  ).toBeVisible();
+  for (const width of [320, 375, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    if (width === 375 || width === 1440)
+      await page.screenshot({
+        path: `test-results/users-directory-${width}.png`,
+      });
+  }
+  await page.getByRole("button", { name: "Add administrator" }).click();
+  const invitation = page.getByRole("dialog", { name: "Add an administrator" });
+  await expect(invitation).toBeVisible();
+  await expect(invitation.getByLabel("Administrator email")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(invitation).not.toBeVisible();
+});
+
 test("roles separate customer, pending operator and administrator access, with a responsive user list", async ({
   page,
   request,
@@ -205,7 +311,7 @@ test("roles separate customer, pending operator and administrator access, with a
   ).toBeVisible();
   await expect(page.getByText(operatorEmail, { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Add an administrator" }),
+    page.getByRole("button", { name: "Add administrator" }),
   ).toBeVisible();
   await page
     .getByLabel("Account role", { exact: true })

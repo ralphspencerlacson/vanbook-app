@@ -42,6 +42,15 @@ export async function seedDocumentChecklist() {
   await db.exec(sql.slice(sql.indexOf("insert into public.operator_document_requirements"), sql.indexOf("commit;")));
 }
 
+export async function seedUserDirectory() {
+  const roles = ["customer", "operator", "admin", "agent", "customer"];
+  for (let index = 0; index < 30; index++) {
+    const id = `50000000-0000-4000-9000-${String(index + 1).padStart(12, "0")}`;
+    await db.query("insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb)", [id, `directory${String(index + 1).padStart(2, "0")}@example.test`, index % 2 ? null : "2026-01-01T00:00:00Z", JSON.stringify({ full_name: `Directory Person ${String(index + 1).padStart(2, "0")}` })]);
+    await db.query("update public.users set role=$2,created_at='2026-01-01'::timestamptz + ($3::int * interval '1 day') where id=$1", [id, roles[index % roles.length], index]);
+  }
+}
+
 export async function resetOperatorData() {
   verificationDelay = 0;
   await db.exec(
@@ -269,16 +278,20 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
           continue;
         if (key === "or") {
           const match = value.match(
-            /^\(business_name\.ilike\.("(?:\\.|[^"\\])*"),registration_number\.ilike\.("(?:\\.|[^"\\])*")\)$/,
+            /^\(([a-z_]+)\.ilike\.("(?:\\.|[^"\\])*"),([a-z_]+)\.ilike\.("(?:\\.|[^"\\])*")\)$/,
           );
           if (!match) throw new Error("Unsupported fixture search");
+          const allowed = table === "users" ? ["email", "full_name"] : ["business_name", "registration_number"];
+          if (!allowed.includes(match[1]) || !allowed.includes(match[3])) throw new Error("Unsupported fixture search columns");
           clauses.push(
-            `(business_name ilike ${add(JSON.parse(match[1]))} or registration_number ilike ${add(JSON.parse(match[2]))})`,
+            `(${identifier(match[1])} ilike ${add(JSON.parse(match[2]))} or ${identifier(match[3])} ilike ${add(JSON.parse(match[4]))})`,
           );
           continue;
         }
         const column = identifier(key);
-        if (value.startsWith("eq."))
+        if (value === "is.null") clauses.push(`${column} is null`);
+        else if (value === "not.is.null") clauses.push(`${column} is not null`);
+        else if (value.startsWith("eq."))
           clauses.push(`${column}=${add(value.slice(3))}`);
         else if (value.startsWith("ilike."))
           clauses.push(`${column} ilike ${add(value.slice(6))}`);

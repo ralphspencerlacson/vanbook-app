@@ -7,6 +7,7 @@ import {
   setOperatorApproval,
   seedVerificationData,
   seedDocumentChecklist,
+  seedUserDirectory,
   setVerificationDelay,
   resetOperatorData,
   handleOperatorApi,
@@ -143,6 +144,10 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/test/checklist/seed") {
     await seedDocumentChecklist();
+    return send(200, {});
+  }
+  if (url.pathname === "/test/users/seed") {
+    await seedUserDirectory();
     return send(200, {});
   }
   if (url.pathname === "/test/verification/slow") {

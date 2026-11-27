@@ -104,7 +104,7 @@ export async function saveRequirement(
     revalidatePath("/operator");
     revalidatePath("/register/operator");
     revalidatePath("/admin");
-    return { success: true, message: "Document checklist updated." };
+    return { success: true, message: "Document requirements updated." };
   } catch {
     return { message: operationError({}) };
   }

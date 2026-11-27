@@ -49,7 +49,7 @@ export function WorkspaceShell({
           {admin && (
             <>
               <Link href="/admin">Review applications</Link>
-              <Link href="/admin/documents">Document checklist</Link>
+              <Link href="/admin/documents">Documents</Link>
               <Link href="/admin/vehicles">All vehicles</Link>
               <Link href="/admin/users">Users</Link>
             </>

@@ -21,7 +21,7 @@ async function RequirementsContent() {
   if (result.error) throw new Error("Unable to load document requirements.");
   return (
     <WorkspaceShell
-      title="Document checklist"
+      title="Documents"
       description="Set the supporting documents needed for operator business review."
       admin
       superAdmin={actor.isSuperAdmin}

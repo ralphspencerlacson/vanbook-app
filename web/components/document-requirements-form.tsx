@@ -216,23 +216,33 @@ export function DocumentRequirementsForm({
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [rule, setRule] = useState("all");
+  const [visibility, setVisibility] = useState("all");
+  const [sort, setSort] = useState("order");
   const [editing, setEditing] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const lastTrigger = useRef<HTMLElement>(null);
   const active = requirements.filter((item) => item.active);
-  const rows = requirements.filter((item) => {
-    const matches = `${item.label} ${item.description}`
-      .toLowerCase()
-      .includes(search.toLowerCase().trim());
-    return (
-      matches &&
-      (filter === "all" ||
-        (filter === "inactive"
-          ? !item.active
-          : item.active && item.required === (filter === "required")))
+  const rows = requirements
+    .filter((item) => {
+      const matches = `${item.label} ${item.description}`
+        .toLowerCase()
+        .includes(search.toLowerCase().trim());
+      return (
+        matches &&
+        (rule === "all" || item.required === (rule === "required")) &&
+        (visibility === "all" || item.active === (visibility === "active"))
+      );
+    })
+    .sort((a, b) =>
+      sort === "name"
+        ? a.label.localeCompare(b.label)
+        : sort === "name_desc"
+          ? b.label.localeCompare(a.label)
+          : a.sort_order - b.sort_order || a.label.localeCompare(b.label),
     );
-  });
+  const filtered =
+    !!search || rule !== "all" || visibility !== "all" || sort !== "order";
   const selected = requirements.find((item) => item.code === editing);
   const close = () => {
     setEditing(null);
@@ -292,7 +302,9 @@ export function DocumentRequirementsForm({
         >
           <header className="requirements-list-heading">
             <div>
-              <h2 id="requirements-list-title">Document requirements</h2>
+              <h2 id="requirements-list-title">
+                Document requirements ({rows.length})
+              </h2>
               <p>Manage the documents operators need to provide.</p>
             </div>
             <button
@@ -302,7 +314,7 @@ export function DocumentRequirementsForm({
               <span aria-hidden="true">＋</span> Add requirement
             </button>
           </header>
-          <div className="requirements-filters">
+          <div className="requirements-filters requirements-expanded-filters">
             <label className="requirements-search">
               <span className="sr-only">Search requirements</span>
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -317,17 +329,54 @@ export function DocumentRequirementsForm({
               />
             </label>
             <label>
-              <span className="sr-only">Filter requirements</span>
+              <span className="filter-control-label">Submission rule</span>
               <select
-                value={filter}
-                onChange={(event) => setFilter(event.target.value)}
+                aria-label="Filter by submission rule"
+                value={rule}
+                onChange={(event) => setRule(event.target.value)}
               >
-                <option value="all">All requirements</option>
+                <option value="all">All submission rules</option>
                 <option value="required">Required</option>
                 <option value="optional">Optional</option>
+              </select>
+            </label>
+            <label>
+              <span className="filter-control-label">Visibility</span>
+              <select
+                aria-label="Filter by visibility"
+                value={visibility}
+                onChange={(event) => setVisibility(event.target.value)}
+              >
+                <option value="all">All visibility</option>
+                <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </label>
+            <label>
+              <span className="filter-control-label">Sort documents</span>
+              <select
+                aria-label="Sort documents"
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+              >
+                <option value="order">Display order</option>
+                <option value="name">Name: A–Z</option>
+                <option value="name_desc">Name: Z–A</option>
+              </select>
+            </label>
+            {filtered && (
+              <button
+                className="filter-clear-button"
+                onClick={() => {
+                  setSearch("");
+                  setRule("all");
+                  setVisibility("all");
+                  setSort("order");
+                }}
+              >
+                Clear filters
+              </button>
+            )}
           </div>
           <table className="requirements-table">
             <caption className="sr-only">
