@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { signOut } from "@/app/auth/actions";
 
-export function SignOutButton() {
+export function SignOutButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const busy = useRef(false);
@@ -26,14 +26,21 @@ export function SignOutButton() {
     }
   }
   return (
-    <div className="space-y-3">
+    <div className={iconOnly ? "sign-out-icon-control" : "space-y-3"}>
       <button
         type="button"
-        className="primary-button"
+        className={iconOnly ? "sign-out-icon-button" : "primary-button"}
+        aria-label={iconOnly ? "Sign out" : undefined}
+        title={iconOnly ? (pending ? "Signing out…" : "Sign out") : undefined}
+        aria-busy={pending}
         disabled={pending}
         onClick={handleSignOut}
       >
-        {pending ? "Signing out…" : "Sign out"}
+        {iconOnly ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M16 17l5-5-5-5M21 12H9" />
+          </svg>
+        ) : pending ? "Signing out…" : "Sign out"}
       </button>
       {error && (
         <p role="alert" className="field-error">

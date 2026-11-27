@@ -28,7 +28,7 @@ export function PublicHeader({
               {name ? (
                 <>
                   <span className="site-account-name">{name}</span>
-                  <SignOutButton />
+                  <SignOutButton iconOnly />
                 </>
               ) : (
                 <Suspense fallback={<PublicAccountLoading />}>

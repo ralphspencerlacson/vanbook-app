@@ -84,6 +84,55 @@
   padding: 8px 12px;
   font-size: 11px;
 }
+.sign-out-icon-control {
+  position: relative;
+  flex-shrink: 0;
+}
+.sign-out-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  border: 1px solid #dce6e9;
+  border-radius: 8px;
+  color: #496370;
+  background: transparent;
+  cursor: pointer;
+}
+.sign-out-icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+.sign-out-icon-button:hover {
+  background: #edf4f3;
+  color: #0e5053;
+}
+.sign-out-icon-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.is-operator .sign-out-icon-button {
+  color: #d3e4e8;
+  border-color: #ffffff24;
+}
+.is-operator .sign-out-icon-button:hover {
+  background: #ffffff12;
+  color: #fff;
+}
+.sign-out-icon-control > .field-error {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  width: min(250px, 80vw);
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #991b1b;
+  font-size: 12px;
+}
 .site-button,
 .site-outline-button,
 .site-quiet-button {

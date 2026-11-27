@@ -19,12 +19,18 @@ export async function PublicAccountActions({ operator }: { operator: boolean }) 
     if (!actor.ready || !actor.access)
       return (
         <>
+          {!operator && (
+            <Link href="/#get-quotes" className="site-button is-yellow">Get quotes</Link>
+          )}
           <Link href="/account">Check account</Link>
-          <SignOutButton />
+          <SignOutButton iconOnly />
         </>
       );
     return (
       <>
+        {!operator && (
+          <Link href="/#get-quotes" className="site-button is-yellow">Get quotes</Link>
+        )}
         <Link
           href={homeFor(actor.access)}
           className={operator ? "site-quiet-button" : "site-outline-button"}
@@ -33,10 +39,7 @@ export async function PublicAccountActions({ operator }: { operator: boolean }) 
             ? "Go to operator dashboard"
             : isAdminRole(actor.access) ? "Go to admin dashboard" : "Profile"}
         </Link>
-        <SignOutButton />
-        {!operator && (
-          <Link href="/#get-quotes" className="site-button is-yellow">Get quotes</Link>
-        )}
+        <SignOutButton iconOnly />
       </>
     );
   }
@@ -46,9 +49,9 @@ export async function PublicAccountActions({ operator }: { operator: boolean }) 
     </Link>
   ) : (
     <>
+      <Link href="/#get-quotes" className="site-button is-yellow">Get quotes</Link>
       <Link href="/sign-in">Log in</Link>
       <Link href="/register" className="site-outline-button">Sign up</Link>
-      <Link href="/#get-quotes" className="site-button is-yellow">Get quotes</Link>
     </>
   );
 }
