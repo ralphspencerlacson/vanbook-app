@@ -19,6 +19,24 @@
   background: #fff;
   border-bottom: 1px solid #e9eff0;
 }
+.landing-site > .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: 0 2px 12px #12212b08;
+}
+.landing-site .landing-section,
+.landing-site .landing-callouts,
+.landing-site .landing-quote {
+  scroll-margin-top: 96px;
+}
+@media (max-width: 560px) {
+  .landing-site .landing-section,
+  .landing-site .landing-callouts,
+  .landing-site .landing-quote {
+    scroll-margin-top: 128px;
+  }
+}
 .site-header-inner {
   display: flex;
   align-items: center;

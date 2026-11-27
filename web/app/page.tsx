@@ -4,7 +4,7 @@ import { VanIllustration } from "@/components/van-illustration";
 import { LandingQuoteForm } from "@/components/landing-quote-form";
 export default function Home() {
   return (
-    <PublicShell>
+    <PublicShell className="landing-site">
       <main>
         <section className="landing-hero">
           <div className="site-container landing-hero-grid">
