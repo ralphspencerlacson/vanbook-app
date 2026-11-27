@@ -34,6 +34,13 @@ await db.exec(
 await db.query("update public.users set role='super_admin' where id=$1", [
   ADMIN_ID,
 ]);
+await db.exec(await readFile(new URL("../../../supabase/migrations/20261127000200_document_checklist.sql", import.meta.url), "utf8"));
+
+export async function seedDocumentChecklist() {
+  // Replay only the reference data, after the additive schema is already applied.
+  const sql = await readFile(new URL("../../../supabase/migrations/20261127000200_document_checklist.sql", import.meta.url), "utf8");
+  await db.exec(sql.slice(sql.indexOf("insert into public.operator_document_requirements"), sql.indexOf("commit;")));
+}
 
 export async function resetOperatorData() {
   verificationDelay = 0;
@@ -168,7 +175,7 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
     if (verificationDelay && url.pathname === "/rest/v1/operator_applications")
       await new Promise((resolve) => setTimeout(resolve, verificationDelay));
     const data = await db.transaction(async (tx) => {
-      await tx.exec("set local role authenticated;");
+      await tx.exec(actor.service_role ? "set local role service_role;" : "set local role authenticated;");
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [
         actor.id,
       ]);

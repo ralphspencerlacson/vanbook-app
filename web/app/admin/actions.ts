@@ -57,27 +57,53 @@ export async function saveRequirement(
     return { message: "Enter a valid document requirement." };
   const code = String(form.get("code") ?? "").trim();
   const label = String(form.get("label") ?? "").trim();
+  const description = String(form.get("description") ?? "").trim();
+  const orderText = String(form.get("sort_order") ?? "0").trim();
+  const sortOrder = Number(orderText);
   if (!/^[a-z][a-z0-9_]{0,63}$/.test(code) || !label || label.length > 150)
     return {
       message:
         "Enter a document label (up to 150 characters). Refresh the page if the requirement still cannot be saved.",
     };
+  if (
+    description.length > 1000 ||
+    !/^\d{1,4}$/.test(orderText) ||
+    !Number.isSafeInteger(sortOrder)
+  )
+    return {
+      message:
+        "Use up to 1,000 characters for upload instructions and a display order from 0 to 9,999.",
+    };
+  if (
+    !["true", "false"].includes(String(form.get("required"))) ||
+    !["true", "false"].includes(String(form.get("active")))
+  )
+    return {
+      message:
+        "Choose whether this document is required or optional, and active or inactive.",
+    };
   try {
     const actor = await getActor();
     if (!actor.user || !actor.isAdmin || !actor.ready)
       return { message: "Administrator access is required." };
-    const result = await actor.supabase.from("operator_document_requirements").upsert(
-      {
-        code,
-        label,
-        required: form.get("required") === "true",
-        active: form.get("active") !== "false",
-      },
-      { onConflict: "code" },
-    );
+    const result = await actor.supabase
+      .from("operator_document_requirements")
+      .upsert(
+        {
+          code,
+          label,
+          description,
+          sort_order: sortOrder,
+          required: form.get("required") === "true",
+          active: form.get("active") !== "false",
+        },
+        { onConflict: "code" },
+      );
     if (result.error) return { message: operationError(result.error) };
     revalidatePath("/admin/documents");
     revalidatePath("/operator");
+    revalidatePath("/register/operator");
+    revalidatePath("/admin");
     return { success: true, message: "Document checklist updated." };
   } catch {
     return { message: operationError({}) };

@@ -30,6 +30,9 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await db.exec("begin;");
+  // These isolation/review cases use the original optional checklist. Dedicated
+  // checklist tests exercise the six active product requirements separately.
+  await db.exec("update public.operator_document_requirements set active=false where code <> 'supporting_document'");
 });
 afterEach(async () => {
   await db.exec("rollback; reset role;");

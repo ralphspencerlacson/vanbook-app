@@ -19,6 +19,7 @@ async function Registration() {
     .from("operator_document_requirements")
     .select()
     .eq("active", true)
+    .order("sort_order")
     .order("label");
   if (error)
     return (

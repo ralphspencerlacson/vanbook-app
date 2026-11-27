@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./workspaces.css";
 import "./admin.css";
+import "./requirements.css";
 import "./loading.css";
 import { LoginTransitionProvider } from "@/components/login-transition";
 

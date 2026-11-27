@@ -59,6 +59,8 @@ export type ApplicationEvent = {
 export type DocumentRequirement = {
   code: string;
   label: string;
+  description: string;
+  sort_order: number;
   required: boolean;
   active: boolean;
 };

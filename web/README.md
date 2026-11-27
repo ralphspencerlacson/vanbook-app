@@ -195,6 +195,16 @@ and 42px active items. Mobile navigation collapses behind an accessible menu.
 - /admin/users and /admin/documents: existing role and checklist tools in the
   secondary management navigation.
 
+The document checklist is a searchable table with Required/Optional and
+Active/Inactive badges. Click a row or its Edit button to open a right-side
+drawer; Escape/Cancel closes it and returns focus to the row. The drawer fills
+the screen on mobile. Administrators can edit the name, upload instructions,
+submission rule, visibility, and display order. Active rules, instructions and
+ordering drive the registration form; the server and database enforce required
+uploads. Existing documents are retained when requirements are deactivated.
+Apply `20261127000200_document_checklist.sql` before deploying this update; see
+`supabase/README.md` for the additive migration and reference checklist.
+
 Summary counts come from the database. Document expiry is not tracked yet, so
 its metric is unavailable; uploaded files are labeled Uploaded, not Valid. Vehicle
 counts are omitted if the existing 200-row management RPC may have been truncated.

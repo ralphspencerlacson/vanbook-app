@@ -22,6 +22,7 @@ export default defineConfig({
         VANBOOK_E2E: "1",
         SUPABASE_URL: "http://127.0.0.1:3242",
         SUPABASE_PUBLISHABLE_KEY: "sb_publishable_local-test-only",
+        SUPABASE_SECRET_KEY: "sb_secret_local-test-only",
         SITE_URL: "http://127.0.0.1:3241",
       },
     },

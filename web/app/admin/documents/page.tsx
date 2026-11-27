@@ -16,6 +16,7 @@ async function RequirementsContent() {
   const result = await actor.supabase
     .from("operator_document_requirements")
     .select()
+    .order("sort_order")
     .order("label");
   if (result.error) throw new Error("Unable to load document requirements.");
   return (

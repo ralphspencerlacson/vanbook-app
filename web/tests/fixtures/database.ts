@@ -34,6 +34,7 @@ export async function createSchema(db: PGlite) {
   await db.exec("set role migration_runner;");
   try {
     await db.exec(await migration("20261127000100_create_schema.sql"));
+    await db.exec(await migration("20261127000200_document_checklist.sql"));
   } catch (error) {
     await db.exec("rollback;");
     throw error;

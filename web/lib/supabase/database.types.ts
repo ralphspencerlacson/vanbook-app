@@ -119,20 +119,26 @@ export type Database = {
         Row: {
           active: boolean
           code: string
+          description: string
           label: string
           required: boolean
+          sort_order: number
         }
         Insert: {
           active?: boolean
           code: string
+          description?: string
           label: string
           required?: boolean
+          sort_order?: number
         }
         Update: {
           active?: boolean
           code?: string
+          description?: string
           label?: string
           required?: boolean
+          sort_order?: number
         }
         Relationships: []
       }

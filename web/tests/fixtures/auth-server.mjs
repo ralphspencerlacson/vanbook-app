@@ -6,6 +6,7 @@ import {
   ADMIN_ID,
   setOperatorApproval,
   seedVerificationData,
+  seedDocumentChecklist,
   setVerificationDelay,
   resetOperatorData,
   handleOperatorApi,
@@ -68,6 +69,7 @@ function session(expired = false, actor = user) {
   };
 }
 function authenticated(req) {
+  if (req.headers.authorization === "Bearer sb_secret_local-test-only") return { id: ADMIN_ID, service_role: true };
   try {
     const token = String(req.headers.authorization ?? "").replace(
       /^Bearer /,
@@ -137,6 +139,10 @@ createServer(async (req, res) => {
   if (url.pathname === "/test/stats") return send(200, { refreshes });
   if (url.pathname === "/test/verification/seed") {
     await seedVerificationData();
+    return send(200, {});
+  }
+  if (url.pathname === "/test/checklist/seed") {
+    await seedDocumentChecklist();
     return send(200, {});
   }
   if (url.pathname === "/test/verification/slow") {

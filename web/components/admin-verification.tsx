@@ -161,6 +161,7 @@ export async function AdminVerification({
     actor.supabase
       .from("operator_document_requirements")
       .select()
+      .order("sort_order")
       .order("label"),
     app
       ? actor.supabase

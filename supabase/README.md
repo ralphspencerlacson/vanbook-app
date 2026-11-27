@@ -21,11 +21,37 @@ For a new project without VANBOOK application tables:
 4. Sign in through `/sign-in`. Management is at `/admin`; all accounts and roles
    are listed under `/admin/users`.
 
-For the existing hosted project, the schema is already applied. Only complete
+For the existing hosted project, the initial schema is already applied. Only complete
 bootstrap if the super-admin account has not yet been created. Migration history
 is aligned with the renamed initial migration; no application data is reset or
 schema SQL rerun when changing that history. Future changes should use new
 migration files rather than editing or rerunning this initial migration.
+
+## Document checklist update
+
+`migrations/20261127000200_document_checklist.sql` extends the existing checklist
+with `description` (upload instructions, up to 1,000 characters) and `sort_order`
+(0–9,999). It adds the six documents from the supplied product reference: CPC,
+vehicle OR/CR, insurance, professional driver's license, business permit, and
+optional BIR Form 2303. Existing codes/settings win if already present; the
+original supporting-document category and all submitted files are preserved.
+
+The hosted project was read-only verified to contain these columns, constraints,
+and six reference rows on 2026-11-27. Its CLI migration history still records only
+the initial migration. This new file safely tolerates the columns/rows already
+existing, so a later authorized CLI migration run can record it without replacing
+the settings. Never rerun the initial schema file. Regenerate public schema
+types after applying it. Administrators manage the table at `/admin/documents`:
+click a row to edit it in a side drawer, or add a requirement. Required/Optional
+controls submission validation; Active/Inactive controls registration visibility.
+Both registration and verification order requirements by `sort_order`, then label.
+
+The requirements table defines the checklist. `operator_documents.category`
+contains the requirement code, linking each uploaded file to a checklist item.
+File name/path/MIME type/size live on the submitted document. Upload status,
+review results, and future issue/expiry dates belong to submissions, rather than
+the global requirement definition. The checklist update adds no per-file review
+or expiry workflow.
 
 If a transaction fails, run `ROLLBACK;` when needed, correct the error, and retry
 that full file on the intended new database. Never change ownership of auth.users.
@@ -64,8 +90,8 @@ not enabled. Password hashes and auth tokens are never copied into public.users.
   require the protected get_managed_vehicles RPC. Listing edits by operators
   return the vehicle to draft for another review.
 
-No mandatory business document categories have been invented. The initial
-supporting-document category is optional; configure the client's checklist in
+The initial supporting-document category remains optional. The second migration
+uses the client's reference checklist; all rules remain editable in
 `/admin/documents`. Operator registration currently allows up to 12 PDF/PNG/JPEG
 files, at most 3 MB combined to fit Vercel request limits. The bucket's independent
 server limit is 10 MB per object. Booking/payment tables and rules are not included.

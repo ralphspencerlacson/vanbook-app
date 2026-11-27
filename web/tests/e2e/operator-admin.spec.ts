@@ -6,6 +6,133 @@ const operatorEmail = "traveller@example.test",
 test.beforeEach(async ({ request }) => {
   await request.post(`${fixture}/test/reset`);
 });
+
+test("document checklist uses a table and row edit drawer, and drives registration rules", async ({
+  page,
+  request,
+  browser,
+}) => {
+  test.setTimeout(60000);
+  await request.post(fixture + "/test/checklist/seed");
+  await register(page, adminEmail, "/admin");
+  await page
+    .getByRole("link", { name: "Document checklist", exact: true })
+    .click();
+  await expect(page.getByRole("table")).toBeVisible();
+  const insurance = page
+    .getByRole("row")
+    .filter({ hasText: "Insurance (CTPL + passenger)" });
+  await expect(insurance).toContainText("Required");
+  const bir = page.getByRole("row").filter({ hasText: "BIR Form 2303" });
+  await expect(bir).toContainText("Optional");
+  await insurance.click();
+  const drawer = page.getByRole("dialog", { name: "Edit requirement" });
+  await expect(drawer).toBeVisible();
+  await drawer
+    .getByLabel("Upload instructions")
+    .fill("Upload a readable insurance certificate.");
+  await drawer.getByLabel("Submission rule").selectOption("false");
+  await drawer.getByLabel("Display order").fill("1");
+  await drawer.getByRole("button", { name: "Save changes" }).click();
+  await expect(drawer).not.toBeVisible();
+  await expect(insurance).toContainText("Optional");
+  await expect(insurance).toContainText(
+    "Upload a readable insurance certificate.",
+  );
+  await page.reload();
+  await expect(insurance).toContainText("Optional");
+  await page
+    .getByRole("button", { name: "Add requirement", exact: true })
+    .click();
+  const add = page.getByRole("dialog", { name: "Add requirement" });
+  await add.getByLabel("Document name").fill("Extra certificate");
+  await add.getByLabel("Submission rule").selectOption("true");
+  await add.getByLabel("Display order").fill("2");
+  await add
+    .getByRole("button", { name: "Add requirement", exact: true })
+    .click();
+  const extra = page.getByRole("row").filter({ hasText: "Extra certificate" });
+  await expect(extra).toContainText("Required");
+  await extra.click();
+  await drawer.getByLabel("Visibility").selectOption("false");
+  await drawer.getByRole("button", { name: "Save changes" }).click();
+  await expect(extra).toContainText("Inactive");
+  await page
+    .getByRole("searchbox", { name: "Search requirements" })
+    .fill("insurance");
+  await expect(page.locator(".requirements-table tbody tr")).toHaveCount(1);
+  await page.getByRole("searchbox", { name: "Search requirements" }).fill("");
+  await page.getByLabel("Filter requirements").selectOption("inactive");
+  await expect(page.locator(".requirements-table tbody tr")).toHaveCount(1);
+  await page.getByLabel("Filter requirements").selectOption("all");
+  for (const width of [320, 375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.screenshot({
+    path: "test-results/document-checklist-desktop.png",
+    fullPage: true,
+  });
+  await insurance.click();
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toHaveCSS("transform", "none");
+  await page.screenshot({
+    path: "test-results/document-checklist-drawer-desktop.png",
+  });
+  await page.keyboard.press("Escape");
+  await expect(drawer).not.toBeVisible();
+  await expect(insurance).toBeFocused();
+  await insurance.press("Enter");
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toHaveCSS("transform", "none");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.screenshot({
+    path: "test-results/document-checklist-drawer-mobile.png",
+  });
+  expect(
+    await drawer.evaluate((node) => node.getBoundingClientRect().width),
+  ).toBeLessThanOrEqual(375);
+  await drawer.getByRole("button", { name: "Cancel" }).click();
+  await page.screenshot({
+    path: "test-results/document-checklist-mobile.png",
+    fullPage: true,
+  });
+
+  const customer = await browser.newContext();
+  const registration = await customer.newPage();
+  await registration.goto("http://127.0.0.1:3241/register/operator");
+  await expect(
+    registration.getByLabel("Insurance (CTPL + passenger) (optional)"),
+  ).toBeVisible();
+  await expect(
+    registration.getByText("Upload a readable insurance certificate."),
+  ).toBeVisible();
+  await expect(
+    registration.getByLabel("LTFRB franchise (CPC) (required)"),
+  ).toHaveAttribute("required", "");
+  await expect(
+    registration.getByLabel("BIR Form 2303 (optional)"),
+  ).not.toHaveAttribute("required");
+  await expect(registration.getByLabel("Extra certificate")).toHaveCount(0);
+  expect(
+    await registration
+      .locator('input[type="file"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.id)),
+  ).toEqual([
+    "document:supporting_document",
+    "document:insurance",
+    "document:ltfrb_franchise",
+    "document:vehicle_or_cr",
+    "document:driver_license",
+    "document:business_permit",
+    "document:bir_form_2303",
+  ]);
+  await customer.close();
+});
 async function register(page: Page, email: string, destination = "/account") {
   await page.goto("/register");
   await page
@@ -162,7 +289,10 @@ test("admin login centers the animated van once, then tabs skip it and verificat
   await register(page, adminEmail, "/admin");
   await request.post(fixture + "/test/verification/seed");
   await signOut(page);
-  await expect(page.locator(".auth-promo .van-scene-vehicle")).toHaveCSS("animation-name", "van-drive-wave");
+  await expect(page.locator(".auth-promo .van-scene-vehicle")).toHaveCSS(
+    "animation-name",
+    "van-drive-wave",
+  );
   await page.getByLabel("Email address", { exact: true }).fill(adminEmail);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await request.post(fixture + "/test/verification/slow");
@@ -173,10 +303,14 @@ test("admin login centers the animated van once, then tabs skip it and verificat
     "animation-name",
     "van-drive-wave",
   );
-  await expect.poll(async () => {
-    const box = await page.locator(".login-transition .van-loading-scene").boundingBox();
-    return Math.abs(box!.x + box!.width / 2 - 720);
-  }).toBeLessThan(2);
+  await expect
+    .poll(async () => {
+      const box = await page
+        .locator(".login-transition .van-loading-scene")
+        .boundingBox();
+      return Math.abs(box!.x + box!.width / 2 - 720);
+    })
+    .toBeLessThan(2);
   await page.screenshot({ path: "test-results/van-loading-desktop.png" });
   await page.setViewportSize({ width: 375, height: 812 });
   expect(
@@ -198,7 +332,9 @@ test("admin login centers the animated van once, then tabs skip it and verificat
   await request.post(fixture + "/test/verification/fast");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/admin?status=all");
-  await expect(page.getByRole("heading", { name: "Operator verification", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Operator verification", exact: true }),
+  ).toBeVisible();
   const verification = page
     .getByRole("navigation", { name: "Administration" })
     .getByRole("link", { name: /Verification/ });
@@ -277,9 +413,7 @@ test("admin login centers the animated van once, then tabs skip it and verificat
   await expect(
     page.getByRole("heading", { name: "Bayanihan Transport", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("link", { name: "Booking", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Booking", exact: true }).click();
   await expect(
     page.getByRole("heading", {
       name: "Bookings and escalations",
@@ -295,29 +429,61 @@ test("admin login centers the animated van once, then tabs skip it and verificat
     }).observe(document.body, { subtree: true, childList: true });
   });
   await request.post(fixture + "/test/verification/slow");
-  const sidebarBeforeNavigation = await page.locator(".admin-sidebar").elementHandle();
+  const sidebarBeforeNavigation = await page
+    .locator(".admin-sidebar")
+    .elementHandle();
   await verification.click();
   const skeleton = page.locator("#admin-content .workspace-loading");
   await expect(skeleton).toBeVisible();
   await expect(page.locator(".admin-sidebar")).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Administration" })).toBeVisible();
-  expect(await sidebarBeforeNavigation!.evaluate((node) => node === document.querySelector(".admin-sidebar"))).toBe(true);
-  await expect(skeleton.locator(".skeleton-block").first()).toHaveCSS("animation-name", "workspace-shimmer");
-  await page.screenshot({ path: "test-results/admin-content-loading-desktop.png" });
+  await expect(
+    page.getByRole("navigation", { name: "Administration" }),
+  ).toBeVisible();
+  expect(
+    await sidebarBeforeNavigation!.evaluate(
+      (node) => node === document.querySelector(".admin-sidebar"),
+    ),
+  ).toBe(true);
+  await expect(skeleton.locator(".skeleton-block").first()).toHaveCSS(
+    "animation-name",
+    "workspace-shimmer",
+  );
+  await page.screenshot({
+    path: "test-results/admin-content-loading-desktop.png",
+  });
   await page.setViewportSize({ width: 375, height: 812 });
   await expect(page.locator(".admin-sidebar")).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: "test-results/admin-content-loading-mobile.png" });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/admin-content-loading-mobile.png",
+  });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(skeleton.locator(".skeleton-block").first()).toHaveCSS("animation-name", "none");
+  await expect(skeleton.locator(".skeleton-block").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(page.getByRole("heading", { name: "Operator verification", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Operator verification", exact: true }),
+  ).toBeVisible();
   await expect(skeleton).not.toBeVisible();
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await expect(page.locator("html")).toHaveAttribute("data-saw-van-loader", "false");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-saw-van-loader",
+    "false",
+  );
   await request.post(fixture + "/test/verification/fast");
   await page.getByRole("link", { name: "Booking", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Bookings and escalations", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Bookings and escalations",
+      exact: true,
+    }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "This month", exact: true }).click();
   await expect(
     page.getByRole("link", { name: "This month", exact: true }),
