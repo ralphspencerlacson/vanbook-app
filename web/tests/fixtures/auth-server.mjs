@@ -5,6 +5,8 @@ import {
   OPERATOR_ID,
   ADMIN_ID,
   setOperatorApproval,
+  seedVerificationData,
+  setVerificationDelay,
   resetOperatorData,
   handleOperatorApi,
 } from "./operator-api.mjs";
@@ -133,6 +135,18 @@ createServer(async (req, res) => {
     return send(200, {});
   }
   if (url.pathname === "/test/stats") return send(200, { refreshes });
+  if (url.pathname === "/test/verification/seed") {
+    await seedVerificationData();
+    return send(200, {});
+  }
+  if (url.pathname === "/test/verification/slow") {
+    setVerificationDelay(2500);
+    return send(200, {});
+  }
+  if (url.pathname === "/test/verification/fast") {
+    setVerificationDelay(0);
+    return send(200, {});
+  }
   if (url.pathname === "/test/expired-session") return send(200, session(true));
   const actor = authenticated(req);
   if (await handleOperatorApi(req, res, url, body, actor, send)) return;

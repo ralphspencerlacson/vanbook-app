@@ -179,6 +179,33 @@ SUPABASE_SECRET_KEY in the environment, in addition to the server-side
 Supabase connection variables and SITE_URL. The hosted schema was applied on 2026-11-27;
 email/SMTP and the first super-admin account remain to be configured. See the hosted guide for exact file order, templates, and checks.
 
+### Admin prototype and loading experience
+
+The admin area follows the supplied prototype: a dark sidebar, amber active
+navigation, compact metric cards, and a split operator queue/review panel. The
+sidebar uses the requested 220px flex basis, 200–260px bounds, #12212B background,
+and 42px active items. Mobile navigation collapses behind an accessible menu.
+
+- /admin: live operator verification with search by business/registration number,
+  status filters, pagination, private document links, notes, and review decisions.
+- /admin/operators/[id]: opens that operator in the same verification workspace.
+- /admin/bookings, /admin/fees, /admin/complaints, /admin/reports: styled interface
+  shells with empty states; booking, fee, complaint and reporting workflows are
+  not integrated yet. Date-range tabs retain their selection in the URL.
+- /admin/users and /admin/documents: existing role and checklist tools in the
+  secondary management navigation.
+
+Summary counts come from the database. Document expiry is not tracked yet, so
+its metric is unavailable; uploaded files are labeled Uploaded, not Valid. Vehicle
+counts are omitted if the existing 200-row management RPC may have been truncated.
+No production test data or new database migrations were added for this redesign.
+
+Admin route transitions and workspace Suspense boundaries show an SVG/CSS van
+loader: the van follows the rolling road, the road markings scroll, and the sun
+moves. The animation is responsive and becomes static with reduced-motion enabled.
+No GIF, additional image download, or artificial loading delay is used in the app.
+The browser fixture alone supplies sample operators and controlled delays for QA.
+
 Password recovery is available at `/forgot-password` and `/reset-password` using
 the existing email-link callback. The reset-password template is provided under
 `supabase/templates`. Private workspace and reset responses are not shared-cached.

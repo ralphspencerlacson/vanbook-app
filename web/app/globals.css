@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "./workspaces.css";
+@import "./admin.css";
+@import "./loading.css";
 
 :root {
   --background: #ffffff;

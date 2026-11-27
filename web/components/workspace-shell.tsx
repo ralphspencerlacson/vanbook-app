@@ -3,6 +3,8 @@ import { BrandMark } from "./brand-mark";
 import { SignOutButton } from "./sign-out-button";
 import { SessionRefresh } from "./session-refresh";
 import { type ApplicationStatus, statusLabels } from "@/lib/operators/types";
+import { AdminShell } from "./admin-shell";
+import { VanLoadingScreen } from "./van-loading-screen";
 
 export function WorkspaceShell({
   title,
@@ -18,6 +20,12 @@ export function WorkspaceShell({
   operator?: boolean;
   children: React.ReactNode;
 }) {
+  if (admin)
+    return (
+      <AdminShell title={title} description={description}>
+        {children}
+      </AdminShell>
+    );
   return (
     <div className="workspace-page">
       <SessionRefresh />
@@ -66,11 +74,7 @@ export function StatusBadge({ status }: { status: ApplicationStatus }) {
   );
 }
 export function WorkspaceLoading() {
-  return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <p role="status">Loading workspace…</p>
-    </main>
-  );
+  return <VanLoadingScreen />;
 }
 export function WorkspaceUnavailable({ admin = false }: { admin?: boolean }) {
   return (

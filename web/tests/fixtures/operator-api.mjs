@@ -6,6 +6,10 @@ import { readFile } from "node:fs/promises";
 export const OPERATOR_ID = "f28c2830-2944-4ec0-a7b8-1557c6309c08";
 export const ADMIN_ID = "10000000-0000-4000-8000-000000000003";
 const db = new PGlite();
+let verificationDelay = 0;
+export function setVerificationDelay(value) {
+  verificationDelay = value;
+}
 await db.exec(`
   create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create schema storage;
   create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb default '{}',invited_at timestamptz);
@@ -32,9 +36,76 @@ await db.query("update public.users set role='super_admin' where id=$1", [
 ]);
 
 export async function resetOperatorData() {
+  verificationDelay = 0;
   await db.exec(
-    `truncate public.operator_applications cascade; truncate storage.objects; update public.users set role='customer'; update public.users set role='super_admin' where id='${ADMIN_ID}'; truncate public.operator_document_requirements; insert into public.operator_document_requirements(code,label) values('supporting_document','Supporting document');`,
+    `truncate public.operator_applications cascade; truncate storage.objects; delete from auth.users where id::text like '50000000-%'; update public.users set role='customer'; update public.users set role='super_admin' where id='${ADMIN_ID}'; truncate public.operator_document_requirements; insert into public.operator_document_requirements(code,label) values('supporting_document','Supporting document');`,
   );
+}
+export async function seedVerificationData() {
+  await db.exec(
+    "truncate public.operator_applications cascade; truncate storage.objects; truncate public.operator_document_requirements;",
+  );
+  const checklist = [
+    ["ltfrb_franchise", "LTFRB franchise (CPC)"],
+    ["or_cr", "Vehicle OR/CR"],
+    ["seat_capacity", "Seats vs OR/CR"],
+    ["insurance", "Insurance"],
+    ["driver_license", "Driver’s license"],
+    ["business_permit", "Business permit"],
+  ];
+  for (const [code, label] of checklist)
+    await db.query(
+      "insert into public.operator_document_requirements(code,label,required) values($1,$2,true)",
+      [code, label],
+    );
+  const businesses = [
+    ["Lakbay Luzon Travel", "Rizal", "submitted", 2],
+    ["Bayanihan Transport", "Metro Manila", "submitted", 5],
+    ["Southbound Tours", "Laguna", "changes_requested", 24],
+    ["Island Road Van Rental", "Cavite", "submitted", 50],
+    ["Northstar Travel Co.", "Bulacan", "approved", 72],
+  ];
+  for (let index = 0; index < businesses.length; index++) {
+    const [name, area, status, hours] = businesses[index];
+    const owner = `50000000-0000-4000-8000-00000000000${index + 1}`;
+    await db.query(
+      'insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,now(),\'{"account_type":"operator"}\') on conflict(id) do nothing',
+      [owner, `operator${index + 1}@example.test`],
+    );
+    await db.query("update public.users set role='operator' where id=$1", [
+      owner,
+    ]);
+    const app = (
+      await db.query(
+        "insert into public.operator_applications(owner_id,business_name,registration_number,contact_name,contact_email,contact_phone,operating_base,service_areas,status,submitted_at,updated_at) values($1,$2,$3,'Test Contact',$4,'+639171234567',$5,array[$5],$6,now()-($7::text||' hours')::interval,now()-($7::text||' hours')::interval) returning id",
+        [
+          owner,
+          name,
+          `CPC-2026-000${index + 1}`,
+          `operator${index + 1}@example.test`,
+          area,
+          status,
+          hours,
+        ],
+      )
+    ).rows[0];
+    await db.query(
+      "insert into public.operator_application_events(application_id,actor_id,from_status,to_status,note) values($1,$2,'draft','submitted','Application received')",
+      [app.id, owner],
+    );
+    if (index === 0)
+      for (const [category] of checklist) {
+        const path = `${owner}/${app.id}/${category}.pdf`;
+        await db.query(
+          "insert into storage.objects(bucket_id,name) values('operator-documents',$1)",
+          [path],
+        );
+        await db.query(
+          "insert into public.operator_documents(application_id,storage_path,category,file_name,content_type,size_bytes) values($1,$2,$3,$4,'application/pdf',2048)",
+          [app.id, path, category, category + ".pdf"],
+        );
+      }
+  }
 }
 export async function setOperatorApproval(approved) {
   await db.query("update public.users set role='operator' where id=$1", [
@@ -77,6 +148,7 @@ const tables = new Set([
   "operator_documents",
   "operator_application_events",
   "operator_document_requirements",
+  "operator_vehicles",
 ]);
 const identifier = (value) => {
   if (!/^[a-z_]+$/.test(value)) throw new Error("Invalid fixture identifier");
@@ -93,6 +165,8 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
     return true;
   }
   try {
+    if (verificationDelay && url.pathname === "/rest/v1/operator_applications")
+      await new Promise((resolve) => setTimeout(resolve, verificationDelay));
     const data = await db.transaction(async (tx) => {
       await tx.exec("set local role authenticated;");
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [
@@ -145,6 +219,13 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
       }
       if (url.pathname.startsWith("/rest/v1/rpc/")) {
         const name = url.pathname.split("/").at(-1);
+        if (name === "get_managed_vehicles")
+          return (
+            await tx.query(
+              "select * from public.get_managed_vehicles($1::uuid)",
+              [body.p_id ?? null],
+            )
+          ).rows;
         if (name === "account_access")
           return (await tx.query("select public.account_access() as value"))
             .rows[0].value;
@@ -179,11 +260,25 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
       for (const [key, value] of url.searchParams) {
         if (["select", "order", "offset", "limit", "on_conflict"].includes(key))
           continue;
+        if (key === "or") {
+          const match = value.match(
+            /^\(business_name\.ilike\.("(?:\\.|[^"\\])*"),registration_number\.ilike\.("(?:\\.|[^"\\])*")\)$/,
+          );
+          if (!match) throw new Error("Unsupported fixture search");
+          clauses.push(
+            `(business_name ilike ${add(JSON.parse(match[1]))} or registration_number ilike ${add(JSON.parse(match[2]))})`,
+          );
+          continue;
+        }
         const column = identifier(key);
         if (value.startsWith("eq."))
           clauses.push(`${column}=${add(value.slice(3))}`);
         else if (value.startsWith("ilike."))
           clauses.push(`${column} ilike ${add(value.slice(6))}`);
+        else if (value.startsWith("lt."))
+          clauses.push(`${column}<${add(value.slice(3))}`);
+        else if (value.startsWith("gte."))
+          clauses.push(`${column}>=${add(value.slice(4))}`);
         else if (value.startsWith("in.(") && value.endsWith(")"))
           clauses.push(
             `${column}::text=any(${add(value.slice(4, -1).split(","))}::text[])`,
