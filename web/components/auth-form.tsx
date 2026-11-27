@@ -225,6 +225,7 @@ export function AuthForm({
         {registering ? "Already have an account? " : "New to VANBOOK PH? "}
         <Link
           className="font-semibold text-teal-800 underline underline-offset-4"
+          scroll={false}
           href={`${registering ? "/sign-in" : "/register"}?next=${encodeURIComponent(next)}`}
         >
           {registering ? "Sign in" : "Create an account"}

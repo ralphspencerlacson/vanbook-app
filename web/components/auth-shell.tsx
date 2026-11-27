@@ -2,17 +2,7 @@ import Link from "next/link";
 import { BrandMark } from "./brand-mark";
 import { VanIllustration } from "./van-illustration";
 
-export function AuthShell({
-  title,
-  description,
-  children,
-  tab,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  tab?: "sign-in" | "register";
-}) {
+export function AuthFrame({ children }: { children: React.ReactNode }) {
   return (
     <main className="auth-page">
       <div className="auth-layout">
@@ -25,27 +15,7 @@ export function AuthShell({
           </p>
         </section>
         <div className="auth-form-area">
-          <section className="auth-form-card" aria-labelledby="auth-title">
-            {tab && (
-              <nav className="auth-mode-tabs" aria-label="Account access">
-                <Link
-                  href="/sign-in"
-                  aria-current={tab === "sign-in" ? "page" : undefined}
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/register"
-                  aria-current={tab === "register" ? "page" : undefined}
-                >
-                  Sign up
-                </Link>
-              </nav>
-            )}
-            <h1 id="auth-title">{title}</h1>
-            <p className="auth-form-description">{description}</p>
-            {children}
-          </section>
+          {children}
           <footer className="auth-footer">
             <Link href="/register/operator">
               Van operator? Create your account
@@ -55,5 +25,33 @@ export function AuthShell({
         </div>
       </div>
     </main>
+  );
+}
+
+export function AuthCardContent({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <h1 id="auth-title">{title}</h1>
+      <p className="auth-form-description">{description}</p>
+      {children}
+    </>
+  );
+}
+
+export function AuthShell(props: Parameters<typeof AuthCardContent>[0]) {
+  return (
+    <AuthFrame>
+      <section className="auth-form-card" aria-labelledby="auth-title">
+        <AuthCardContent {...props} />
+      </section>
+    </AuthFrame>
   );
 }

@@ -8,6 +8,58 @@ test.beforeEach(async ({ request }) => {
   await request.post(`${fixture}/test/reset`);
 });
 
+test("account tabs preserve the van and smoothly resize the shared card", async ({ page }) => {
+  await page.goto("/sign-in");
+  await expect(page.getByLabel("Password", { exact: true })).toBeEnabled();
+  const van = await page.locator(".auth-promo .van-scene-vehicle").elementHandle();
+  const drive = await van!.evaluateHandle((node) => node.getAnimations()[0]);
+  const viewport = page.locator(".auth-card-viewport");
+  const initialHeight = (await viewport.boundingBox())!.height;
+
+  // Sample actual layout through the navigation, including intermediate heights.
+  await viewport.evaluate((node) => {
+    const samples: number[] = [];
+    (node as HTMLElement & { heightSamples: number[] }).heightSamples = samples;
+    const until = performance.now() + 2500;
+    const sample = () => {
+      samples.push(node.getBoundingClientRect().height);
+      if (performance.now() < until) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await page.getByRole("navigation", { name: "Account access" }).getByRole("link", { name: "Sign up", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+  await expect.poll(() => viewport.evaluate((node) => node.getAnimations().length)).toBe(0);
+  const finalHeight = (await viewport.boundingBox())!.height;
+  expect(finalHeight).toBeGreaterThan(initialHeight + 20);
+  const samples = await viewport.evaluate((node) => (node as HTMLElement & { heightSamples: number[] }).heightSamples);
+  expect(samples.some((height) => height > initialHeight + 3 && height < finalHeight - 3)).toBe(true);
+  expect(await van!.evaluate((node) => node.isConnected)).toBe(true);
+  expect(await van!.evaluate((node, animation) => node.getAnimations()[0] === animation, drive)).toBe(true);
+  await expect(page.getByRole("button", { name: "Create account", exact: true })).toBeDisabled();
+
+  await page.getByRole("navigation", { name: "Account access" }).getByRole("link", { name: "Log in", exact: true }).click();
+  await expect(page.getByLabel("Password", { exact: true }).filter({ visible: true })).toBeEnabled();
+  await expect.poll(() => viewport.evaluate((node) => node.getAnimations().length)).toBe(0);
+  expect((await viewport.boundingBox())!.height).toBeCloseTo(initialHeight, 0);
+  expect(await van!.evaluate((node) => node.isConnected)).toBe(true);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+  expect(await van!.evaluate((node) => node.isConnected)).toBe(true);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole("navigation", { name: "Account access" }).getByRole("link", { name: "Log in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  expect(await viewport.evaluate((node) => node.getAnimations().length)).toBe(0);
+  expect(await page.locator(".auth-form-panel").evaluate((node) => node.getAnimations().length)).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("navigation", { name: "Account access" }).getByRole("link", { name: "Sign up", exact: true }).click();
+  await page.getByRole("button", { name: "Create account", exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("button", { name: "Create account", exact: true })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("email confirmation, session restoration, token refresh and sign-out", async ({
   page,
   context,

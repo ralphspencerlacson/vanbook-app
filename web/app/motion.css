@@ -1,3 +1,11 @@
+.auth-card-viewport {
+  overflow: clip;
+  overflow-clip-margin: 6px;
+}
+.auth-card-content,
+.auth-form-panel {
+  display: flow-root;
+}
 .auth-mode-tabs {
   display: flex;
   border: 1px solid #ffffff24;

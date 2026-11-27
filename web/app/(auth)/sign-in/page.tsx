@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { AuthForm } from "@/components/auth-form";
-import { AuthShell } from "@/components/auth-shell";
+import { AuthCardContent } from "@/components/auth-shell";
 import { safeNext } from "@/lib/auth/forms";
 
 const notices: Record<string, string> = {
@@ -27,14 +27,13 @@ async function SignInContent({ searchParams }: PageProps<"/sign-in">) {
 
 export default function SignInPage(props: PageProps<"/sign-in">) {
   return (
-    <AuthShell
+    <AuthCardContent
       title="Welcome back"
-      tab="sign-in"
       description="Sign in with your email and password."
     >
       <Suspense fallback={<p role="status">Loading sign-in…</p>}>
         <SignInContent {...props} />
       </Suspense>
-    </AuthShell>
+    </AuthCardContent>
   );
 }
