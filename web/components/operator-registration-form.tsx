@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -23,10 +23,25 @@ const fields = [
   ["operating_base", "Operating base", "text", 200],
   ["service_areas", "Service areas (separate with commas)", "text", 3000],
 ] as const;
+const serviceAreaOptions = [
+  "Metro Manila", "Rizal", "Laguna", "Cavite",
+  "Batangas", "Bulacan", "Pampanga", "Quezon",
+];
+const placeholders: Record<string, string> = {
+  business_name: "As on DTI/SEC registration",
+  registration_number: "Registration no.",
+  contact_name: "Full name",
+  contact_email: "business@email.com",
+  contact_phone: "09XX XXX XXXX",
+  operating_base: "City or municipality",
+  service_areas: "Add other areas, separated by commas",
+};
 export function OperatorRegistrationForm({
   requirements,
+  heading,
 }: {
   requirements: DocumentRequirement[];
+  heading: ReactNode;
 }) {
   const router = useRouter();
   const [result, setResult] = useState<RegistrationResult>();
@@ -35,6 +50,9 @@ export function OperatorRegistrationForm({
   const [files, setFiles] = useState<Record<string, File>>({});
   const [agreement, setAgreement] = useState(false);
   const [declaration, setDeclaration] = useState(false);
+  const [serviceAreas, setServiceAreas] = useState("");
+  const [businessFieldsReady, setBusinessFieldsReady] = useState(false);
+  const [vehicleCompletion, setVehicleCompletion] = useState<Record<string, boolean>>({});
   const busy = useRef(false);
   const next = useRef(1);
   const hydrated = useHydrated();
@@ -73,39 +91,69 @@ export function OperatorRegistrationForm({
       setPending(false);
     }
   }
-  const uploaded = requirements.filter(
-    (item) => files[`document:${item.code}`],
-  ).length;
   const required = requirements.filter((item) => item.required);
+  const uploaded = required.filter((item) => files[`document:${item.code}`]).length;
   const documentsReady = required.every(
     (item) => !!files[`document:${item.code}`],
   );
+  const selectedAreas = serviceAreas.split(",")
+    .map((area) => area.trim()).filter(Boolean);
+  const businessReady = businessFieldsReady && selectedAreas.length > 0;
+  const vehiclesReady = vehicles.every((key) => vehicleCompletion[key]);
+  function checkCompletion(event: FormEvent<HTMLFormElement>) {
+    const form = event.currentTarget;
+    const complete = (selector: string) =>
+      Array.from(form.querySelectorAll<HTMLInputElement>(selector))
+        .every((input) => input.validity.valid);
+    const values = new FormData(form);
+    setBusinessFieldsReady(
+      complete('.operator-business-details input[required]:not([name="service_areas"])') &&
+      values.get("password") === values.get("confirmPassword"),
+    );
+    setVehicleCompletion(Object.fromEntries(
+      Array.from(form.querySelectorAll<HTMLElement>("[data-vehicle-key]")).map((vehicle) => [
+        vehicle.dataset.vehicleKey!,
+        Array.from(vehicle.querySelectorAll<HTMLInputElement>("input[required]")).every((input) => input.validity.valid),
+      ]),
+    ));
+  }
+  function toggleArea(area: string) {
+    const selected = selectedAreas.some((value) => value.toLowerCase() === area.toLowerCase());
+    setServiceAreas((selected
+      ? selectedAreas.filter((value) => value.toLowerCase() !== area.toLowerCase())
+      : [...selectedAreas, area]).join(", "));
+  }
   return (
     <form
       className="operator-registration-layout"
       onSubmit={submit}
+      onChange={checkCompletion}
       aria-busy={pending}
     >
       <div className="operator-registration-main">
+        {heading}
         {result && (
           <p role="alert" className="requirements-error">
             {result.message}
           </p>
         )}
-        <section className="operator-panel">
+        <section className="operator-panel operator-business-details">
           <h2>1 · Business details</h2>
-          <p className="operator-muted">
-            Your account email will receive a confirmation link. Business
-            approval is reviewed separately.
-          </p>
           <div className="operator-form-grid">
             {fields.map(([key, label, type, max]) => (
-              <label key={key}>
+              <div key={key} className={key === "service_areas" ? "operator-service-areas" : undefined}>
+                <label>
                 {label}
                 <input
                   name={key}
                   type={type}
                   maxLength={max}
+                  placeholder={placeholders[key]}
+                  {...(key === "service_areas" ? {
+                    value: serviceAreas,
+                    onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+                      setServiceAreas(event.target.value),
+                  } : {})}
                   required={key !== "registration_number"}
                   disabled={pending || !hydrated}
                   aria-invalid={!!result?.errors?.[key]}
@@ -113,8 +161,28 @@ export function OperatorRegistrationForm({
                 {result?.errors?.[key] && (
                   <span className="field-error">{result.errors[key]}</span>
                 )}
-              </label>
+                </label>
+                {key === "service_areas" && (
+                  <span className="operator-service-area-options" role="group" aria-label="Popular service areas">
+                    {serviceAreaOptions.map((area) => (
+                      <button
+                        type="button"
+                        key={area}
+                        disabled={pending || !hydrated}
+                        aria-pressed={selectedAreas.some((value) => value.toLowerCase() === area.toLowerCase())}
+                        onClick={() => toggleArea(area)}
+                      >
+                        {area}
+                      </button>
+                    ))}
+                  </span>
+                )}
+              </div>
             ))}
+          </div>
+          <div className="operator-account-heading">
+            <h3>Your operator account</h3>
+            <p>Confirm your email to track your application. Approval is required to receive requests.</p>
           </div>
           <div className="operator-form-grid operator-account-fields">
             <label>
@@ -158,12 +226,12 @@ export function OperatorRegistrationForm({
           <div className="operator-panel-heading">
             <h2>2 · Documents</h2>
             <span>
-              {uploaded} of {requirements.length} uploaded
+              {uploaded} of {required.length} required ready
             </span>
           </div>
           <progress
             className="operator-upload-progress"
-            max={Math.max(1, requirements.length)}
+            max={Math.max(1, required.length)}
             value={uploaded}
             aria-label="Document upload progress"
           />
@@ -173,7 +241,15 @@ export function OperatorRegistrationForm({
                 <div>
                   <label htmlFor={`document:${item.code}`}>{item.label}</label>
                   {item.description && (
-                    <p id={`document-help:${item.code}`}>{item.description}</p>
+                    <details className="operator-document-instructions">
+                      <summary>Instructions</summary>
+                      <p id={`document-help:${item.code}`}>{item.description}</p>
+                    </details>
+                  )}
+                  {files[`document:${item.code}`] && (
+                    <small className="operator-document-filename">
+                      {files[`document:${item.code}`].name}
+                    </small>
                   )}
                 </div>
                 <span
@@ -185,7 +261,7 @@ export function OperatorRegistrationForm({
                       ? "Required"
                       : "Optional"}
                 </span>
-                <div className="operator-file-choice">
+                <div className={`operator-file-choice ${files[`document:${item.code}`] ? "has-file" : ""}`}>
                   <span aria-hidden="true">
                     {files[`document:${item.code}`] ? "Replace" : "Upload"}
                   </span>
@@ -210,9 +286,6 @@ export function OperatorRegistrationForm({
                     }
                   />
                 </div>
-                {files[`document:${item.code}`] && (
-                  <small>{files[`document:${item.code}`].name}</small>
-                )}
               </div>
             ))}
           </div>
@@ -223,19 +296,15 @@ export function OperatorRegistrationForm({
         </section>
         <section className="operator-panel">
           <h2>3 · Vehicles</h2>
-          <p className="operator-muted">
-            Add at least one van with a front photo. Other views help us review
-            your vehicle.
-          </p>
           <input
             type="hidden"
             name="vehicle_keys"
             value={JSON.stringify(vehicles)}
           />
           {vehicles.map((key, index) => (
-            <div className="operator-registration-vehicle" key={key}>
+            <div className="operator-registration-vehicle" key={key} data-vehicle-key={key}>
               <div className="operator-panel-heading">
-                <h3>Vehicle {index + 1}</h3>
+                <h3>{vehicles.length > 1 ? `Vehicle ${index + 1}` : "At least one van with a front photo"}</h3>
                 {vehicles.length > 1 && (
                   <button
                     type="button"
@@ -307,30 +376,27 @@ export function OperatorRegistrationForm({
           >
             {pending ? "Submitting application…" : "Submit application"}
           </button>
-          <Link
-            className="operator-text-button"
-            href="/sign-in?next=%2Foperator"
-          >
-            Already registered? Sign in
-          </Link>
         </section>
       </div>
       <aside className="operator-checklist">
         <h2>Your checklist</h2>
         <ul>
-          <li>Business and account details</li>
-          <li data-complete={documentsReady}>
-            {documentsReady ? "✓" : "○"} Documents ready
-          </li>
-          <li
-            data-complete={vehicles.some((key) => files[`photo:${key}:front`])}
-          >
-            {vehicles.some((key) => files[`photo:${key}:front`]) ? "✓" : "○"} At
-            least one van with a front photo
-          </li>
-          <li data-complete={agreement && declaration}>
-            {agreement && declaration ? "✓" : "○"} Agreements accepted
-          </li>
+          {[
+            { label: "Business details", complete: businessReady },
+            { label: `Documents (${uploaded}/${required.length})`, complete: documentsReady },
+            { label: "At least 1 vehicle with photos", complete: vehiclesReady },
+            { label: "Agreement accepted", complete: agreement && declaration },
+          ].map((item) => (
+            <li key={item.label} data-complete={item.complete}>
+              <span className="operator-checklist-indicator" aria-hidden="true">
+                {item.complete ? "✓" : ""}
+              </span>
+              <span>
+                {item.label}
+                <span className="sr-only">{item.complete ? ": complete" : ": incomplete"}</span>
+              </span>
+            </li>
+          ))}
         </ul>
         <p>
           Already registered?{" "}

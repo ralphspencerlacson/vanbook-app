@@ -100,6 +100,15 @@ test("operator registration, document correction, admin update tracking and vehi
   await expect(
     page.getByRole("heading", { name: "Register your vans", exact: true }),
   ).toBeVisible();
+  for (const width of [320, 375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width === 375) await page.screenshot({ path: "test-results/operator-registration-mobile.png", fullPage: true, animations: "disabled" });
+  }
+  await page.getByRole("group", { name: "Popular service areas" }).getByRole("button", { name: "Metro Manila", exact: true }).click();
+  await expect(page.getByLabel("Service areas (separate with commas)", { exact: true })).toHaveValue("Metro Manila");
+  await page.getByRole("group", { name: "Popular service areas" }).getByRole("button", { name: "Metro Manila", exact: true }).click();
+  await expect(page.getByLabel("Service areas (separate with commas)", { exact: true })).toHaveValue("");
   const fields = {
     "Registered business name": "Lakbay Test Travel",
     "Business registration number (optional)": "TEST-CPC-001",
@@ -135,8 +144,16 @@ test("operator registration, document correction, admin update tracking and vehi
   }))
     await fleet.getByLabel(label, { exact: true }).fill(value);
   await fleet.getByLabel("front photo", { exact: true }).setInputFiles(photo);
+  await expect(page.locator(".operator-checklist li").filter({ hasText: "Business details" })).toHaveAttribute("data-complete", "true");
+  await expect(page.locator(".operator-checklist li").filter({ hasText: "Documents (5/5)" })).toHaveAttribute("data-complete", "true");
+  await expect(page.locator(".operator-checklist li").filter({ hasText: "At least 1 vehicle" })).toHaveAttribute("data-complete", "true");
+  await page.getByRole("button", { name: "Add another vehicle" }).click();
+  await expect(page.locator(".operator-checklist li").filter({ hasText: "At least 1 vehicle" })).toHaveAttribute("data-complete", "false");
+  await page.getByRole("button", { name: "Remove vehicle" }).last().click();
+  await expect(page.locator(".operator-checklist li").filter({ hasText: "At least 1 vehicle" })).toHaveAttribute("data-complete", "true");
   await page.locator('input[name="agreement"]').check();
   await page.locator('input[name="declaration"]').check();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: "test-results/operator-registration.png",
     fullPage: true,

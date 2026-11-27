@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import {
   amenities,
   photoPositions,
@@ -20,6 +21,7 @@ export function VehicleFields({
   disabled?: boolean;
   onFilesChange?: (name: string, file: File | undefined) => void;
 }) {
+  const [fileNames, setFileNames] = useState<Record<string, string>>({});
   return (
     <>
       <div className="operator-vehicle-fields">
@@ -64,10 +66,11 @@ export function VehicleFields({
       <div className="operator-photo-grid">
         {photoPositions.map((position) => (
           <label className="operator-photo-upload" key={position}>
-            <span>
+            <span className="operator-photo-title"><span aria-hidden="true">{fileNames[position] ? "✓ " : "+ "}</span>
               {position[0].toUpperCase() + position.slice(1)} photo{" "}
               {position === "front" ? "*" : ""}
             </span>
+            {fileNames[position] && <small className="operator-photo-filename">{fileNames[position]}</small>}
             {photos.some((photo) => photo.position === position) && (
               <small>Photo on file · choose to replace</small>
             )}
@@ -81,9 +84,11 @@ export function VehicleFields({
                 !photos.some((photo) => photo.position === "front")
               }
               disabled={disabled}
-              onChange={(event) =>
-                onFilesChange?.(photoPrefix + position, event.target.files?.[0])
-              }
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                setFileNames((previous) => ({ ...previous, [position]: file?.name ?? "" }));
+                onFilesChange?.(photoPrefix + position, file);
+              }}
             />
           </label>
         ))}

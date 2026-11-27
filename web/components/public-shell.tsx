@@ -101,16 +101,20 @@ export function PublicShell({
   children,
   operator,
   name,
+  className = "",
+  footer = true,
 }: {
   children: React.ReactNode;
   operator?: boolean;
   name?: string;
+  className?: string;
+  footer?: boolean;
 }) {
   return (
-    <div className="public-site">
+    <div className={`public-site ${className}`}>
       <PublicHeader operator={operator} name={name} />
       {children}
-      <PublicFooter />
+      {footer && <PublicFooter />}
     </div>
   );
 }

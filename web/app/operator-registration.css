@@ -1,0 +1,384 @@
+.operator-registration-site .site-header-inner {
+  min-height: 54px;
+  gap: 12px;
+}
+.operator-registration-site .site-header .welcome-brand {
+  font-size: 15px;
+  gap: 6px;
+}
+.operator-registration-site .site-header .welcome-brand-icon {
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+}
+.operator-registration-site .site-operator-label {
+  font-size: 10px;
+}
+.operator-registration-site .site-header-actions {
+  gap: 8px;
+}
+.operator-registration-site .site-quiet-button {
+  min-height: 30px;
+  padding: 7px 10px;
+  font-size: 10px;
+  border-radius: 5px;
+}
+.operator-registration-page {
+  width: min(1040px, calc(100% - 48px));
+  padding-block: 26px 64px;
+}
+.operator-registration-page .operator-registration-layout {
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 18px;
+}
+.operator-registration-page .operator-registration-main {
+  gap: 14px;
+}
+.operator-registration-page .operator-page-heading {
+  margin-bottom: 0;
+}
+.operator-registration-page .site-small-label {
+  font-size: 9px;
+  color: #1a666b;
+}
+.operator-registration-page .operator-page-heading h1 {
+  margin-top: 3px;
+  font-size: clamp(1.5rem, 2.3vw, 1.875rem);
+  line-height: 1.2;
+}
+.operator-registration-page .operator-page-heading > p {
+  margin-top: 5px;
+  font-size: 11px;
+}
+.operator-registration-page .operator-panel {
+  padding: 17px 18px;
+  border: 0;
+  border-radius: 12px;
+}
+.operator-registration-page .operator-panel h2 {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.operator-registration-page .operator-panel-heading h2 {
+  margin-bottom: 0;
+}
+.operator-registration-page .operator-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+  margin-block: 0;
+}
+.operator-registration-page .operator-service-areas {
+  grid-column: 1 / -1;
+}
+.operator-registration-page .operator-registration-main label:not(.site-checkbox) {
+  font-size: 10px;
+}
+.operator-registration-page .operator-form-grid input,
+.operator-registration-page .operator-vehicle-fields input {
+  min-height: 36px;
+  margin-top: 4px;
+  padding: 7px 9px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+.operator-registration-page input::placeholder {
+  color: #95a7b2;
+}
+.operator-service-area-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.operator-service-area-options button {
+  padding: 4px 9px;
+  min-height: 29px;
+  border: 1px solid #dce6eb;
+  border-radius: 20px;
+  background: #fff;
+  color: #345664;
+  font-size: 10px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background-color 160ms, border-color 160ms;
+}
+.operator-service-area-options button[aria-pressed="true"] {
+  background: #e6f3f1;
+  border-color: #6caaa6;
+  color: #0e6265;
+}
+.operator-account-heading {
+  border-top: 1px solid #edf2f3;
+  padding-top: 12px;
+  margin-top: 14px;
+  margin-bottom: 10px;
+}
+.operator-account-heading h3 {
+  font-size: 11px;
+}
+.operator-account-heading p {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #8195a1;
+  margin-top: 3px;
+}
+.operator-registration-page .operator-account-fields {
+  border: 0;
+  padding: 0;
+}
+.operator-registration-page .operator-account-fields > label {
+  grid-column: auto;
+}
+.operator-registration-page .operator-upload-progress {
+  display: block;
+  margin-block: 10px 8px;
+}
+.operator-registration-page .operator-registration-document {
+  grid-template-columns: minmax(0, 1fr) 132px 66px;
+  padding: 11px 0;
+  gap: 10px;
+}
+.operator-registration-page .operator-registration-document:last-child {
+  border-bottom: 0;
+}
+.operator-registration-page .operator-registration-document > div > label {
+  font-size: 11px;
+  font-weight: 550;
+}
+.operator-registration-page .requirement-badge {
+  justify-self: start;
+  font-size: 9px;
+  white-space: normal;
+}
+.operator-document-instructions summary {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 9px;
+  color: #7b939f;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.operator-document-filename {
+  display: block;
+  font-size: 9px;
+  color: #5b8b8b;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+}
+.operator-registration-page .operator-file-choice {
+  width: 66px;
+  min-height: 30px;
+  border-radius: 6px;
+  background: #0e5053;
+  color: #fff;
+}
+.operator-registration-page .operator-file-choice.has-file {
+  background: #fff;
+  border-color: #d6e2e6;
+  color: #245366;
+}
+.operator-registration-page .operator-muted {
+  font-size: 9px;
+  margin-bottom: 0;
+}
+.operator-registration-page .operator-registration-vehicle {
+  padding: 0 0 12px;
+  margin-bottom: 12px;
+}
+.operator-registration-page .operator-registration-vehicle .operator-panel-heading {
+  margin-bottom: 8px;
+}
+.operator-registration-page .operator-registration-vehicle h3 {
+  font-size: 10px;
+  color: #8195a1;
+  font-weight: 400;
+}
+.operator-registration-page .operator-vehicle-fields {
+  gap: 10px;
+}
+.operator-registration-page .operator-photo-grid {
+  gap: 8px;
+  margin-top: 12px;
+}
+.operator-registration-page .operator-photo-upload {
+  position: relative;
+  display: flex !important;
+  min-height: 77px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 7px;
+  text-align: center;
+  border: 1px dashed #c7dbde;
+  background: #f0f6f6;
+}
+.operator-registration-page .operator-photo-upload:has(input:focus-visible) {
+  outline: 2px solid #0f766e;
+  outline-offset: 3px;
+}
+.operator-registration-page .operator-photo-upload > span {
+  font-size: 10px;
+}
+.operator-registration-page .operator-photo-upload small {
+  max-width: 100%;
+  margin-top: 0;
+  overflow-wrap: anywhere;
+  font-size: 9px;
+}
+.operator-registration-page .operator-photo-upload input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.operator-registration-page .operator-amenities {
+  gap: 6px;
+  margin-top: 10px;
+}
+.operator-registration-page .operator-amenities legend {
+  margin-bottom: 6px;
+  font-size: 9px;
+}
+.operator-registration-page .operator-amenities label {
+  position: relative;
+  min-height: 28px;
+  padding: 4px 9px;
+}
+.operator-registration-page .operator-amenities input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.operator-registration-page .operator-amenities label:has(input:focus-visible) {
+  outline: 2px solid #0f766e;
+  outline-offset: 3px;
+}
+.operator-registration-page .site-outline-button {
+  min-height: 31px;
+  padding: 7px 11px;
+  font-size: 10px;
+  border-style: dashed;
+  border-radius: 6px;
+}
+.operator-registration-page .operator-panel .site-checkbox {
+  margin-bottom: 9px;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.operator-registration-page .operator-panel > .site-button {
+  min-height: 36px;
+  padding: 8px 15px;
+  margin-top: 3px;
+  font-size: 11px;
+}
+.operator-registration-page .operator-checklist {
+  padding: 18px;
+  border: 0;
+  top: 20px;
+  border-radius: 13px;
+}
+.operator-registration-page .operator-checklist h2 {
+  font-size: 14px;
+}
+.operator-registration-page .operator-checklist ul {
+  margin-top: 12px;
+  gap: 10px;
+}
+.operator-registration-page .operator-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+.operator-checklist-indicator {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  border: 1px solid #c5d5da;
+  border-radius: 50%;
+  font-size: 10px;
+}
+[data-complete="true"] > .operator-checklist-indicator {
+  border-color: #087d77;
+  background: #087d77;
+  color: #fff;
+}
+.operator-registration-page .operator-checklist p {
+  padding: 10px;
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 14px;
+}
+@media (max-width: 900px) {
+  .operator-registration-page .operator-registration-layout {
+    grid-template-columns: minmax(0, 1fr) 205px;
+    gap: 14px;
+  }
+  .operator-registration-page .operator-form-grid,
+  .operator-registration-page .operator-vehicle-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operator-registration-page .operator-account-fields > label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 800px) {
+  .operator-registration-page .operator-registration-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .operator-registration-page .operator-checklist {
+    grid-row: auto;
+  }
+}
+@media (max-width: 560px) {
+  .operator-registration-page {
+    width: calc(100% - 24px);
+    padding-block: 20px 36px;
+  }
+  .operator-registration-page .operator-panel,
+  .operator-registration-page .operator-checklist {
+    padding: 16px 13px;
+  }
+  .operator-registration-page .operator-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .operator-registration-page .operator-registration-document {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+  }
+  .operator-registration-page .operator-registration-document > div:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .operator-registration-page .operator-registration-document .requirement-badge {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .operator-registration-page .operator-file-choice {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    min-height: 36px;
+  }
+  .operator-registration-page .operator-checklist ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .operator-registration-page .operator-form-grid input,
+  .operator-registration-page .operator-vehicle-fields input {
+    font-size: 16px;
+    min-height: 41px;
+  }
+  .operator-service-area-options button {
+    min-height: 34px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .operator-service-area-options button { transition: none; }
+}
