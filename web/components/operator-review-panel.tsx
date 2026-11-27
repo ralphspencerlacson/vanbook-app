@@ -1,4 +1,9 @@
 import Link from "next/link";
+import {
+  DocumentReviewControls,
+  VehicleReviewControls,
+} from "./document-review-controls";
+import type { OperatorVehicle, VehiclePhoto } from "@/lib/operators/vehicles";
 import { ReviewApplicationForm } from "./review-application-form";
 import { StatusBadge } from "./workspace-shell";
 import {
@@ -15,12 +20,16 @@ export function OperatorReviewPanel({
   requirements,
   events,
   vehicleCount,
+  vehicles = [],
+  photos = [],
 }: {
   application: OperatorApplication;
   documents: ApplicationDocument[];
   requirements: DocumentRequirement[];
   events: ApplicationEvent[];
   vehicleCount?: number;
+  vehicles?: OperatorVehicle[];
+  photos?: VehiclePhoto[];
 }) {
   const categories = [
     ...requirements.map((r) => ({
@@ -63,6 +72,15 @@ export function OperatorReviewPanel({
         <StatusBadge status={app.status} />
       </header>
       <div className="admin-document-checklist">
+        {app.operator_updated_at && (
+          <p className="admin-operator-update">
+            <strong>Updated by operator</strong> ·{" "}
+            {displayDate(app.operator_updated_at)}
+            {app.resubmitted_at && (
+              <> · Resubmitted {displayDate(app.resubmitted_at)}</>
+            )}
+          </p>
+        )}
         <h3 className="sr-only">Supporting documents</h3>
         {categories.length ? (
           categories.map((category) => {
@@ -71,6 +89,20 @@ export function OperatorReviewPanel({
               <div className="admin-document-row" key={category.code}>
                 <div>
                   <strong>{category.label}</strong>
+                  {files[0]?.review_note && (
+                    <p className="operator-review-note">
+                      {files[0].review_note}
+                    </p>
+                  )}
+                  {files[0] && (
+                    <DocumentReviewControls
+                      key={`${files[0].id}-${app.version}`}
+                      id={files[0].id}
+                      version={app.version}
+                      label={category.label}
+                      note={files[0].review_note ?? ""}
+                    />
+                  )}
                   {files.length > 1 && (
                     <span className="admin-document-count">
                       {files.length} files
@@ -95,7 +127,11 @@ export function OperatorReviewPanel({
                   className={`admin-document-status ${files.length ? "is-uploaded" : category.required ? "is-missing" : "is-optional"}`}
                 >
                   {files.length
-                    ? "Uploaded"
+                    ? files[0].review_status === "approved"
+                      ? "Approved"
+                      : files[0].review_status === "changes_requested"
+                        ? "Resubmit"
+                        : "Pending review"
                     : category.required
                       ? "Missing"
                       : "Optional"}
@@ -123,6 +159,47 @@ export function OperatorReviewPanel({
           </div>
         )}
       </div>
+      <section className="admin-vehicle-review">
+        <h3>Registered vehicles ({vehicles.length})</h3>
+        {vehicles.map((vehicle) => (
+          <article key={vehicle.id}>
+            <strong>{vehicle.title}</strong>
+            <p>
+              {vehicle.plate_number} · {vehicle.model_year} · {vehicle.seats}{" "}
+              seats · {vehicle.location}
+            </p>
+            <p>
+              {vehicle.status === "published"
+                ? "Approved"
+                : vehicle.status === "rejected"
+                  ? "Changes requested"
+                  : "Pending vehicle review"}
+            </p>
+            <div className="admin-vehicle-photo-links">
+              {photos
+                .filter((photo) => photo.vehicle_id === vehicle.id)
+                .map((photo) => (
+                  <a
+                    key={photo.id}
+                    href={`/vehicle-photos/${photo.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View {photo.position} photo ↗
+                  </a>
+                ))}
+            </div>
+            {app.status === "approved" ? (
+              <VehicleReviewControls
+                id={vehicle.id}
+                version={vehicle.version}
+              />
+            ) : (
+              <p>Approve the operator before publishing this vehicle.</p>
+            )}
+          </article>
+        ))}
+      </section>
       <ReviewApplicationForm
         key={`${app.id}-${app.version}`}
         application={app}

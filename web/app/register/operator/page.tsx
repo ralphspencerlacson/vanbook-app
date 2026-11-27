@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { BrandMark } from "@/components/brand-mark";
+import { PublicShell } from "@/components/public-shell";
 import { OperatorRegistrationForm } from "@/components/operator-registration-form";
 import { createAdminClient, hasAdminKey } from "@/lib/supabase/admin";
 import type { DocumentRequirement } from "@/lib/operators/types";
@@ -9,13 +8,12 @@ async function Registration() {
   await connection();
   if (!hasAdminKey())
     return (
-      <p role="alert">
+      <p className="operator-panel" role="alert">
         Operator registration is not configured yet. Please contact VANBOOK PH
         support.
       </p>
     );
-  const client = createAdminClient();
-  const { data, error } = await client
+  const { data, error } = await createAdminClient()
     .from("operator_document_requirements")
     .select()
     .eq("active", true)
@@ -23,7 +21,7 @@ async function Registration() {
     .order("label");
   if (error)
     return (
-      <p role="alert">
+      <p className="operator-panel" role="alert">
         Operator registration is not available yet. Please try again later.
       </p>
     );
@@ -33,23 +31,20 @@ async function Registration() {
 }
 export default function Page() {
   return (
-    <div className="workspace-page">
-      <header className="workspace-header">
-        <BrandMark />
-        <Link href="/sign-in" className="text-white">
-          Sign in
-        </Link>
-      </header>
-      <main className="registration-page workspace-panel">
-        <h1 className="text-2xl font-bold">Register your operator business</h1>
-        <p className="workspace-muted my-4">
-          Provide your account, business details, and documents. Our team will
-          review your application before you can sign in.
-        </p>
+    <PublicShell operator>
+      <main className="site-container operator-registration-page">
+        <header className="operator-page-heading">
+          <span className="site-small-label">BECOME A VANBOOK OPERATOR</span>
+          <h1>Register your vans</h1>
+          <p>
+            Tell us about your business, upload your documents, and add your
+            vehicles for review.
+          </p>
+        </header>
         <Suspense fallback={<p role="status">Loading registration…</p>}>
           <Registration />
         </Suspense>
       </main>
-    </div>
+    </PublicShell>
   );
 }

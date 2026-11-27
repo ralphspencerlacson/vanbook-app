@@ -110,8 +110,9 @@ saved snapshot describes the supplied result, not a live view of the project.
 Registration uses email and a password, followed by an email confirmation link.
 There is no OTP, Google, or mobile-number sign-in in this increment.
 
-- `/` and `/sign-in`: email/password sign-in, with confirmation resend.
-- `/register`: registration with matching passwords and email confirmation.
+- `/`: public landing page, sample routes and a quote-form preview.
+- `/sign-in`: email/password sign-in, with confirmation resend.
+- `/register`: non-submitting customer form in the same animated-van auth shell.
 - `/auth/callback`: exchange the confirmation link's PKCE code for a session.
 - `/account`: server-verified account and sign-out for the current browser.
 - `/sign-in/password`: compatibility redirect to `/sign-in`.
@@ -145,9 +146,10 @@ this chat. Real inbox delivery still needs a manual test.
 
 ### Try the flow
 
-1. Run `npm run dev`, open `/register`, and create an account with your own inbox.
+1. Run `npm run dev`, open `/register/operator`, and submit your business,
+   documents, and at least one van with a front photo using your own inbox.
 2. Open the confirmation email link in the browser where you registered.
-3. Confirm `/account` shows your verified email; reload and reopen the tab.
+3. Confirm `/operator` shows your application and document review status.
 4. Sign out, then sign in with the email and password you registered.
 5. Try a wrong password, an expired/reused confirmation link, and confirmation
    resend to check recovery. Do not share passwords, links, or session cookies.
@@ -160,16 +162,17 @@ They do not send emails or create users in the live Supabase project.
 
 ## Operator applications and administration
 
-Customers register at `/register`. Operators submit business details and private
-documents at `/register/operator`, then wait for email verification and admin
-approval before signing in. The shared `/admin` area verifies roles server-side:
-operators see their own business, while admins review all applications.
+Customer sign-up is intentionally a preview. Operators submit business details,
+private documents, vehicles and photos at `/register/operator`, confirm email,
+and sign in at `/operator`. Pending operators see review status and can edit and
+resubmit their application. `/admin` is the administrator workspace; an operator
+visiting its root is redirected to their own portal. Each query/action retains
+server-side role checks and RLS ownership restrictions.
 `/admin/users` lists all users with email search and role filters. Only the
 super admin can invite administrators. Agent access is reserved and disabled.
 
-Use the single initial migration documented in [the hosted setup guide](../supabase/README.md):
-00100 creates the complete schema on a new database without clearing data.
-The existing hosted project already has this schema; do not rerun it.
+Use all three migrations in order as documented in [the hosted setup guide](../supabase/README.md).
+All are applied on the hosted project; do not rerun the initial migration.
 Run bootstrap-admin.sql after setup for admin@vanbook.ph. The app uses one
 public.users profile/role table, plus prefixed operator tables. Workspaces stack
 on mobile and use a sidebar/grid on desktop. No Docker service is required.
@@ -177,7 +180,34 @@ on mobile and use a sidebar/grid on desktop. No Docker service is required.
 Operator registration and admin invitations require a server-only
 SUPABASE_SECRET_KEY in the environment, in addition to the server-side
 Supabase connection variables and SITE_URL. The hosted schema was applied on 2026-11-27;
-email/SMTP and the first super-admin account remain to be configured. See the hosted guide for exact file order, templates, and checks.
+live email delivery remains to be checked with a permitted inbox/SMTP setup. See the hosted guide for exact file order, templates, and checks.
+
+### Landing and operator portal
+
+The landing page contains a trip-form preview, route inspiration, how-it-works,
+group-travel callouts, and operator registration/login links. Get quotes shows a
+coming-soon message without writing a booking. Customer registration collects
+mock profile fields but its Create account button is disabled. Log in/Sign up
+tabs share the existing animated-van auth layout.
+
+Operator registration saves all business and fleet data before showing
+`/register/operator/success`. Confirmed pending operators land on application
+status with a review timeline and per-document Pending/Approved/Resubmit labels.
+The edit form retains unchanged files and uploads replacements. Version checks
+prevent concurrent edits/reviews from overwriting changes; admin verification
+shows the latest operator update, resubmission timestamp, and audit events.
+
+Approved operators land on Requests. Requests, Quoted, Booked, Calendar, and
+Earnings have empty states. My vans supports adding/editing vehicles, private
+photo uploads, and availability after operator/vehicle approval. Editing a van
+returns it to review and turns off availability. Documents shows review results;
+driver profiles remain a later phase. Admins review individual documents and
+registered vehicle details/photos inside operator verification.
+
+Pages, tabs, buttons, drawers, success steps, and the van have short motion
+effects. Reduced-motion preferences disable nonessential movement. The server
+secret is configured locally in ignored `.env.local`; Vercel also requires
+`SUPABASE_SECRET_KEY` for operator registration, file replacement, and van photos.
 
 ### Admin prototype and loading experience
 

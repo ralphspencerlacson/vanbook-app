@@ -36,6 +36,8 @@ export type OperatorApplication = ApplicationDraft & {
   review_note: string;
   created_at: string;
   updated_at: string;
+  operator_updated_at: string | null;
+  resubmitted_at: string | null;
 };
 export type ApplicationDocument = {
   id: string;
@@ -46,6 +48,10 @@ export type ApplicationDocument = {
   content_type: string;
   size_bytes: number;
   created_at: string;
+  review_status: "pending" | "approved" | "changes_requested";
+  review_note: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 };
 export type ApplicationEvent = {
   id: string;

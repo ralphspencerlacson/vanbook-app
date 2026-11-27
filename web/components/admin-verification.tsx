@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell } from "./admin-shell";
 import { OperatorReviewPanel } from "./operator-review-panel";
+import type { OperatorVehicle, VehiclePhoto } from "@/lib/operators/vehicles";
 import {
   applicationStatuses,
   statusLabels,
@@ -173,6 +174,24 @@ export async function AdminVerification({
   ]);
   if (docs.error || requirements.error || events.error)
     throw new Error("Unable to load verification documents.");
+  const reviewVehicles = app
+    ? await actor.supabase.rpc("get_operator_review_vehicles", {
+        p_owner: app.owner_id,
+      })
+    : { data: [], error: null };
+  if (reviewVehicles.error)
+    throw new Error("Unable to load registered vehicles.");
+  const vehicleRows = reviewVehicles.data as OperatorVehicle[];
+  const vehiclePhotos = vehicleRows.length
+    ? await actor.supabase
+        .from("operator_vehicle_photos")
+        .select()
+        .in(
+          "vehicle_id",
+          vehicleRows.map((vehicle) => vehicle.id),
+        )
+    : { data: [], error: null };
+  if (vehiclePhotos.error) throw new Error("Unable to load vehicle photos.");
   const href = (options: {
     operator?: string;
     page?: number;
@@ -287,6 +306,17 @@ export async function AdminVerification({
                       <small>
                         {row.registration_number || row.contact_name}
                       </small>
+                      {row.operator_updated_at && (
+                        <span
+                          className="admin-operator-update"
+                          title={new Date(
+                            row.operator_updated_at,
+                          ).toISOString()}
+                        >
+                          Updated by operator ·{" "}
+                          {shortDate(row.operator_updated_at)}
+                        </span>
+                      )}
                     </td>
                     <td>{row.operating_base || "—"}</td>
                     <td>
@@ -349,6 +379,8 @@ export async function AdminVerification({
         </section>
         {app ? (
           <OperatorReviewPanel
+            vehicles={vehicleRows}
+            photos={vehiclePhotos.data as VehiclePhoto[]}
             application={app}
             documents={docs.data as ApplicationDocument[]}
             requirements={(requirements.data as DocumentRequirement[]).filter(

@@ -18,8 +18,8 @@ await db.exec(`
   create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,metadata jsonb,unique(bucket_id,name));
   alter table storage.objects enable row level security;
   create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name,'/'))[1:array_length(string_to_array(name,'/'),1)-1] $$;
-  grant usage on schema public,auth,storage to anon,authenticated;
-  grant select,insert,delete on storage.objects to authenticated;
+  grant usage on schema public,auth,storage to anon,authenticated,service_role;
+  grant select,insert,delete on storage.objects to authenticated,service_role;
   insert into auth.users(id,email,email_confirmed_at) values('${OPERATOR_ID}','traveller@example.test',now()),('${ADMIN_ID}','admin@example.test',now());
 `);
 await db.exec(
@@ -34,27 +34,82 @@ await db.exec(
 await db.query("update public.users set role='super_admin' where id=$1", [
   ADMIN_ID,
 ]);
-await db.exec(await readFile(new URL("../../../supabase/migrations/20261127000200_document_checklist.sql", import.meta.url), "utf8"));
+await db.exec(
+  await readFile(
+    new URL(
+      "../../../supabase/migrations/20261127000200_document_checklist.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
+await db.exec(
+  await readFile(
+    new URL(
+      "../../../supabase/migrations/20261127000300_operator_portal.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
+export async function saveFixtureAuthUser(value) {
+  await db.query(
+    "insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb) on conflict(id) do update set email=excluded.email,email_confirmed_at=excluded.email_confirmed_at,raw_user_meta_data=excluded.raw_user_meta_data",
+    [
+      value.id,
+      value.email,
+      value.email_confirmed_at,
+      JSON.stringify(value.user_metadata ?? {}),
+    ],
+  );
+}
+export async function removeFixtureAuthUser(id) {
+  await db.query("delete from auth.users where id=$1", [id]);
+}
 
 export async function seedDocumentChecklist() {
   // Replay only the reference data, after the additive schema is already applied.
-  const sql = await readFile(new URL("../../../supabase/migrations/20261127000200_document_checklist.sql", import.meta.url), "utf8");
-  await db.exec(sql.slice(sql.indexOf("insert into public.operator_document_requirements"), sql.indexOf("commit;")));
+  const sql = await readFile(
+    new URL(
+      "../../../supabase/migrations/20261127000200_document_checklist.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  await db.exec(
+    sql.slice(
+      sql.indexOf("insert into public.operator_document_requirements"),
+      sql.indexOf("commit;"),
+    ),
+  );
 }
 
 export async function seedUserDirectory() {
   const roles = ["customer", "operator", "admin", "agent", "customer"];
   for (let index = 0; index < 30; index++) {
     const id = `50000000-0000-4000-9000-${String(index + 1).padStart(12, "0")}`;
-    await db.query("insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb)", [id, `directory${String(index + 1).padStart(2, "0")}@example.test`, index % 2 ? null : "2026-01-01T00:00:00Z", JSON.stringify({ full_name: `Directory Person ${String(index + 1).padStart(2, "0")}` })]);
-    await db.query("update public.users set role=$2,created_at='2026-01-01'::timestamptz + ($3::int * interval '1 day') where id=$1", [id, roles[index % roles.length], index]);
+    await db.query(
+      "insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb)",
+      [
+        id,
+        `directory${String(index + 1).padStart(2, "0")}@example.test`,
+        index % 2 ? null : "2026-01-01T00:00:00Z",
+        JSON.stringify({
+          full_name: `Directory Person ${String(index + 1).padStart(2, "0")}`,
+        }),
+      ],
+    );
+    await db.query(
+      "update public.users set role=$2,created_at='2026-01-01'::timestamptz + ($3::int * interval '1 day') where id=$1",
+      [id, roles[index % roles.length], index],
+    );
   }
 }
 
 export async function resetOperatorData() {
   verificationDelay = 0;
   await db.exec(
-    `truncate public.operator_applications cascade; truncate storage.objects; delete from auth.users where id::text like '50000000-%'; update public.users set role='customer'; update public.users set role='super_admin' where id='${ADMIN_ID}'; truncate public.operator_document_requirements; insert into public.operator_document_requirements(code,label) values('supporting_document','Supporting document');`,
+    `truncate public.operator_applications cascade; truncate storage.objects; delete from auth.users where id::text like '50000000-%' or id::text like '60000000-%'; update public.users set role='customer'; update public.users set role='super_admin' where id='${ADMIN_ID}'; truncate public.operator_document_requirements; insert into public.operator_document_requirements(code,label) values('supporting_document','Supporting document');`,
   );
 }
 export async function seedVerificationData() {
@@ -165,6 +220,7 @@ const tables = new Set([
   "operator_application_events",
   "operator_document_requirements",
   "operator_vehicles",
+  "operator_vehicle_photos",
 ]);
 const identifier = (value) => {
   if (!/^[a-z_]+$/.test(value)) throw new Error("Invalid fixture identifier");
@@ -184,7 +240,11 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
     if (verificationDelay && url.pathname === "/rest/v1/operator_applications")
       await new Promise((resolve) => setTimeout(resolve, verificationDelay));
     const data = await db.transaction(async (tx) => {
-      await tx.exec(actor.service_role ? "set local role service_role;" : "set local role authenticated;");
+      await tx.exec(
+        actor.service_role
+          ? "set local role service_role;"
+          : "set local role authenticated;",
+      );
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [
         actor.id,
       ]);
@@ -235,6 +295,73 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
       }
       if (url.pathname.startsWith("/rest/v1/rpc/")) {
         const name = url.pathname.split("/").at(-1);
+        if (name === "check_registration_limit")
+          return (
+            await tx.query(
+              "select public.check_registration_limit($1) as value",
+              [body.p_key],
+            )
+          ).rows[0].value;
+        if (name === "finalize_operator_registration") {
+          await tx.query("select public.finalize_operator_registration($1)", [
+            body.p_id,
+          ]);
+          return null;
+        }
+        if (name === "operator_resubmit_application") {
+          await tx.query(
+            "select public.operator_resubmit_application($1,$2,$3::jsonb,$4::jsonb)",
+            [
+              body.p_id,
+              body.p_version,
+              JSON.stringify(body.p_details),
+              JSON.stringify(body.p_documents),
+            ],
+          );
+          return null;
+        }
+        if (name === "review_operator_document") {
+          await tx.query(
+            "select public.review_operator_document($1,$2,$3,$4)",
+            [body.p_id, body.p_version, body.p_status, body.p_note],
+          );
+          return null;
+        }
+        if (name === "save_operator_vehicle")
+          return (
+            await tx.query(
+              "select public.save_operator_vehicle($1,$2,$3::jsonb,$4::jsonb) as value",
+              [
+                body.p_id,
+                body.p_version,
+                JSON.stringify(body.p_details),
+                JSON.stringify(body.p_photos),
+              ],
+            )
+          ).rows[0].value;
+        if (name === "set_vehicle_availability") {
+          await tx.query("select public.set_vehicle_availability($1,$2,$3)", [
+            body.p_id,
+            body.p_version,
+            body.p_available,
+          ]);
+          return null;
+        }
+        if (name === "set_vehicle_status") {
+          await tx.query("select public.set_vehicle_status($1,$2,$3)", [
+            body.p_id,
+            body.p_version,
+            body.p_status,
+          ]);
+          return null;
+        }
+        if (name === "get_operator_review_vehicles")
+          return (
+            await tx.query(
+              "select * from public.get_operator_review_vehicles($1)",
+              [body.p_owner],
+            )
+          ).rows;
         if (name === "get_managed_vehicles")
           return (
             await tx.query(
@@ -281,8 +408,12 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
             /^\(([a-z_]+)\.ilike\.("(?:\\.|[^"\\])*"),([a-z_]+)\.ilike\.("(?:\\.|[^"\\])*")\)$/,
           );
           if (!match) throw new Error("Unsupported fixture search");
-          const allowed = table === "users" ? ["email", "full_name"] : ["business_name", "registration_number"];
-          if (!allowed.includes(match[1]) || !allowed.includes(match[3])) throw new Error("Unsupported fixture search columns");
+          const allowed =
+            table === "users"
+              ? ["email", "full_name"]
+              : ["business_name", "registration_number"];
+          if (!allowed.includes(match[1]) || !allowed.includes(match[3]))
+            throw new Error("Unsupported fixture search columns");
           clauses.push(
             `(${identifier(match[1])} ilike ${add(JSON.parse(match[2]))} or ${identifier(match[3])} ilike ${add(JSON.parse(match[4]))})`,
           );

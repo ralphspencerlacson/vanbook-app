@@ -8,23 +8,15 @@ test.beforeEach(async ({ request }) => {
   await request.post(`${fixture}/test/reset`);
 });
 
-test("registration, email confirmation, session restoration, token refresh and sign-out", async ({
+test("email confirmation, session restoration, token refresh and sign-out", async ({
   page,
   context,
   request,
   browser,
 }) => {
-  await page.goto("/register");
-  await page
-    .getByRole("textbox", { name: "Email address", exact: true })
-    .fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByLabel("Confirm password").fill(password);
-  await page
-    .getByRole("button", { name: "Create account", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toContainText("confirmation email");
-  await expect(page.getByLabel("Password", { exact: true })).toHaveValue("");
+  await request.post(fixture + "/test/account/create", {
+    data: { email, password, confirmed: false },
+  });
   await page.goto("/account");
   await expect(page).toHaveURL(/sign-in/);
   await page
@@ -34,6 +26,10 @@ test("registration, email confirmation, session restoration, token refresh and s
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "Confirm your email" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Resend confirmation email" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "new email" }),
   ).toBeVisible();
   await page.goto("/auth/callback?code=test-confirmation-code&next=%2Faccount");
   await expect(page).toHaveURL(/\/account$/);
@@ -93,7 +89,7 @@ test("registration, email confirmation, session restoration, token refresh and s
 test("responsive layout fills the viewport, keeps columns close, and supports text scaling", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/sign-in");
   await expect(
     page.getByRole("textbox", { name: "Email address", exact: true }),
   ).toBeEnabled();
@@ -158,22 +154,11 @@ test("responsive layout fills the viewport, keeps columns close, and supports te
   ).toBeInViewport();
 });
 
-test("validation, confirmation resend and expired-link recovery", async ({
-  page,
-}) => {
-  await page.goto("/register");
+test("confirmation resend and expired-link recovery", async ({ page }) => {
+  await page.goto("/sign-in");
   await page
     .getByRole("textbox", { name: "Email address", exact: true })
     .fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByLabel("Confirm password").fill("different password");
-  await page
-    .getByRole("button", { name: "Create account", exact: true })
-    .click();
-  await expect(page.getByText("The passwords do not match.")).toBeVisible();
-  await expect(page.getByLabel("Password", { exact: true })).toHaveValue(
-    password,
-  );
   await page.getByRole("button", { name: "Resend confirmation email" }).click();
   await expect(page.getByRole("status")).toContainText("new email");
   await page.goto("/auth/callback?code=expired-code&next=https://evil.test");

@@ -6,10 +6,12 @@ export function AuthShell({
   title,
   description,
   children,
+  tab,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  tab?: "sign-in" | "register";
 }) {
   return (
     <main className="auth-page">
@@ -24,12 +26,30 @@ export function AuthShell({
         </section>
         <div className="auth-form-area">
           <section className="auth-form-card" aria-labelledby="auth-title">
+            {tab && (
+              <nav className="auth-mode-tabs" aria-label="Account access">
+                <Link
+                  href="/sign-in"
+                  aria-current={tab === "sign-in" ? "page" : undefined}
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/register"
+                  aria-current={tab === "register" ? "page" : undefined}
+                >
+                  Sign up
+                </Link>
+              </nav>
+            )}
             <h1 id="auth-title">{title}</h1>
             <p className="auth-form-description">{description}</p>
             {children}
           </section>
           <footer className="auth-footer">
-            <Link href="/register/operator">Van operator? Create your account</Link>
+            <Link href="/register/operator">
+              Van operator? Create your account
+            </Link>
             <p>One account for your next journey.</p>
           </footer>
         </div>

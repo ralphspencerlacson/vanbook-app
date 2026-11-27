@@ -4,8 +4,10 @@ import { AuthShell } from "@/components/auth-shell";
 import { safeNext } from "@/lib/auth/forms";
 
 const notices: Record<string, string> = {
-  "operator-pending": "Email verified. Operator sign-in is available only after administrator approval.",
-  "permissions-unavailable": "Account permissions are not configured yet. Please contact VANBOOK PH support.",
+  "operator-pending":
+    "Sign in to track your operator application. Business approval is required before receiving requests.",
+  "permissions-unavailable":
+    "Account permissions are not configured yet. Please contact VANBOOK PH support.",
   "signed-out": "You have signed out of this browser.",
   "session-expired": "Please sign in to continue.",
   "confirm-email":
@@ -27,6 +29,7 @@ export default function SignInPage(props: PageProps<"/sign-in">) {
   return (
     <AuthShell
       title="Welcome back"
+      tab="sign-in"
       description="Sign in with your email and password."
     >
       <Suspense fallback={<p role="status">Loading sign-in…</p>}>

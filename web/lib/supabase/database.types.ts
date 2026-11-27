@@ -62,8 +62,10 @@ export type Database = {
           id: string
           notes: string
           operating_base: string
+          operator_updated_at: string | null
           owner_id: string
           registration_number: string
+          resubmitted_at: string | null
           review_note: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -82,8 +84,10 @@ export type Database = {
           id?: string
           notes?: string
           operating_base?: string
+          operator_updated_at?: string | null
           owner_id?: string
           registration_number?: string
+          resubmitted_at?: string | null
           review_note?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -102,8 +106,10 @@ export type Database = {
           id?: string
           notes?: string
           operating_base?: string
+          operator_updated_at?: string | null
           owner_id?: string
           registration_number?: string
+          resubmitted_at?: string | null
           review_note?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -150,6 +156,10 @@ export type Database = {
           created_at: string
           file_name: string
           id: string
+          review_note: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           size_bytes: number
           storage_path: string
         }
@@ -160,6 +170,10 @@ export type Database = {
           created_at?: string
           file_name: string
           id?: string
+          review_note?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           size_bytes: number
           storage_path: string
         }
@@ -170,6 +184,10 @@ export type Database = {
           created_at?: string
           file_name?: string
           id?: string
+          review_note?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           size_bytes?: number
           storage_path?: string
         }
@@ -183,8 +201,58 @@ export type Database = {
           },
         ]
       }
+      operator_vehicle_photos: {
+        Row: {
+          content_type: string
+          created_at: string
+          file_name: string
+          id: string
+          position: string
+          size_bytes: number
+          storage_path: string
+          vehicle_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          file_name: string
+          id?: string
+          position: string
+          size_bytes: number
+          storage_path: string
+          vehicle_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          position?: string
+          size_bytes?: number
+          storage_path?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_vehicle_photos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "operator_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_vehicle_photos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operator_vehicles: {
         Row: {
+          amenities: string[]
+          available_for_requests: boolean
           created_at: string
           description: string
           id: string
@@ -201,6 +269,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          amenities?: string[]
+          available_for_requests?: boolean
           created_at?: string
           description?: string
           id?: string
@@ -217,6 +287,8 @@ export type Database = {
           version?: number
         }
         Update: {
+          amenities?: string[]
+          available_for_requests?: boolean
           created_at?: string
           description?: string
           id?: string
@@ -334,6 +406,8 @@ export type Database = {
       get_managed_vehicles: {
         Args: { p_id?: string }
         Returns: {
+          amenities: string[]
+          available_for_requests: boolean
           created_at: string
           description: string
           id: string
@@ -355,6 +429,42 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_operator_review_vehicles: {
+        Args: { p_owner: string }
+        Returns: {
+          amenities: string[]
+          available_for_requests: boolean
+          created_at: string
+          description: string
+          id: string
+          location: string
+          make: string
+          model: string
+          model_year: number
+          operator_id: string
+          plate_number: string
+          seats: number
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "operator_vehicles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      operator_resubmit_application: {
+        Args: {
+          p_details: Json
+          p_documents?: Json
+          p_id: string
+          p_version: number
+        }
+        Returns: undefined
       }
       release_admin_invitation: {
         Args: { p_actor: string; p_email: string }
@@ -380,8 +490,10 @@ export type Database = {
           id: string
           notes: string
           operating_base: string
+          operator_updated_at: string | null
           owner_id: string
           registration_number: string
+          resubmitted_at: string | null
           review_note: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -397,6 +509,28 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      review_operator_document: {
+        Args: {
+          p_id: string
+          p_note: string
+          p_status: string
+          p_version: number
+        }
+        Returns: undefined
+      }
+      save_operator_vehicle: {
+        Args: {
+          p_details: Json
+          p_id: string
+          p_photos?: Json
+          p_version: number
+        }
+        Returns: string
+      }
+      set_vehicle_availability: {
+        Args: { p_available: boolean; p_id: string; p_version: number }
+        Returns: undefined
       }
       set_vehicle_status: {
         Args: { p_id: string; p_status: string; p_version: number }

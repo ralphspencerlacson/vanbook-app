@@ -14,7 +14,8 @@ For a new project without VANBOOK application tables:
    It creates all six tables, policies, triggers, views, and functions in one
    transaction. Existing Auth accounts receive public user profiles. It does
    not clear existing tables or restore admin permissions automatically.
-2. Create/verify **admin@vanbook.ph** under Authentication > Users if needed, then
+2. Run `20261127000200_document_checklist.sql`, followed by
+   `20261127000300_operator_portal.sql`. Create/verify **admin@vanbook.ph** under Authentication > Users if needed, then
    run `bootstrap-admin.sql` to explicitly grant that account super_admin.
 3. Run `verify-onboarding.sql`. After bootstrap, the first six checks should be
    true and the last four privilege checks false. The second result lists users.
@@ -36,12 +37,10 @@ vehicle OR/CR, insurance, professional driver's license, business permit, and
 optional BIR Form 2303. Existing codes/settings win if already present; the
 original supporting-document category and all submitted files are preserved.
 
-The hosted project was read-only verified to contain these columns, constraints,
-and six reference rows on 2026-11-27. Its CLI migration history still records only
-the initial migration. This new file safely tolerates the columns/rows already
-existing, so a later authorized CLI migration run can record it without replacing
-the settings. Never rerun the initial schema file. Regenerate public schema
-types after applying it. Administrators manage the table at `/admin/documents`:
+All three migrations are applied and recorded on the hosted project as of
+2026-11-27. The checklist migration safely tolerates the columns/rows already
+existing, retaining their settings. Never rerun the initial schema file. Public schema
+types have been regenerated. Administrators manage the table at `/admin/documents`:
 click a row to edit it in a side drawer, or add a requirement. Required/Optional
 controls submission validation; Active/Inactive controls registration visibility.
 Both registration and verification order requirements by `sort_order`, then label.
@@ -66,6 +65,7 @@ that full file on the intended new database. Never change ownership of auth.user
 | operator_document_requirements | Admin-managed checklist of required/optional document categories |
 | operator_application_events | Immutable submission/review audit history |
 | operator_vehicles | Vehicle details, owner, publication status and version |
+| operator_vehicle_photos | Private front, side, interior and back photo metadata for each van |
 
 The public catalog view is `vehicle_listings`. Private tables store admin
 invitations and registration attempt limits. `auth.users` manages credentials;
@@ -75,11 +75,19 @@ not enabled. Password hashes and auth tokens are never copied into public.users.
 
 ## Permissions and workflows
 
-- Customers register, verify email, and sign in. They can read their own profile.
-- Operators submit all business details and documents during registration. Email
-  verification and administrator approval are required before management access.
-  Pending sessions cannot read business data through the Data API.
-- Approved operators see only their own business and manage only their vehicles.
+- The customer sign-up UI is a non-submitting preview. Existing customers can
+  sign in after email confirmation and read only their own account.
+- Operators submit business details, documents, vehicles, and private photos at
+  registration. Email confirmation is required before signing in. Pending
+  operators can read their own application, review notes and files, prepare vans,
+  and resubmit corrections through version-checked server actions/database RPCs.
+- Business approval and separate vehicle approval are required before a van can
+  become available for requests. Operators cannot self-approve either review.
+- Administrators approve each required document before approving the business.
+  Requesting a document replacement returns the application to changes requested.
+  Resubmission replaces only selected file metadata and resets its review to
+  pending; existing file objects are retained. The application records
+  operator_updated_at/resubmitted_at and an immutable event visible to admins.
 - Admins review/edit all businesses and manage listings; they can view all user
   profiles. Only the super admin can invite a new admin through the dashboard.
 - Public signup metadata cannot grant admin, super_admin, or agent permissions.
@@ -92,8 +100,9 @@ not enabled. Password hashes and auth tokens are never copied into public.users.
 
 The initial supporting-document category remains optional. The second migration
 uses the client's reference checklist; all rules remain editable in
-`/admin/documents`. Operator registration currently allows up to 12 PDF/PNG/JPEG
-files, at most 3 MB combined to fit Vercel request limits. The bucket's independent
+`/admin/documents`. Operator registration allows up to 12 PDF/PNG/JPEG documents,
+one to five vans, and four photo views per van (front required). All documents
+and photos together must be at most 3 MB to fit Vercel request limits. The bucket's independent
 server limit is 10 MB per object. Booking/payment tables and rules are not included.
 
 ## App environment and email

@@ -224,6 +224,23 @@ describe("authentication actions", () => {
     expect((await signIn(credentials())).redirectTo).toBe("/account");
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
+  it("allows email-confirmed pending operators into their application portal", async () => {
+    rpc.mockResolvedValue({
+      data: { role: "operator", approved: false, status: "submitted" },
+      error: null,
+    });
+    auth.signInWithPassword.mockResolvedValue({
+      data: { user: { email_confirmed_at: "2026-11-27" } },
+      error: null,
+    });
+    expect((await signIn(credentials())).redirectTo).toBe("/operator");
+    expect(auth.signOut).not.toHaveBeenCalled();
+  });
+  it("sends approved operators directly to Requests after login", async () => {
+    rpc.mockResolvedValue({data:{role:"operator",approved:true,status:"approved"},error:null});
+    auth.signInWithPassword.mockResolvedValue({data:{user:{email_confirmed_at:"2026-11-27"}},error:null});
+    expect((await signIn(credentials())).redirectTo).toBe("/operator/requests");
+  });
   it("shows invalid credentials and provider rate limits", async () => {
     auth.signInWithPassword.mockResolvedValue({
       data: null,

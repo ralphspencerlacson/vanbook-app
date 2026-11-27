@@ -9,7 +9,7 @@ import {
 } from "../fixtures/database";
 
 describe("initial VANBOOK schema migration", () => {
-  it("creates the six protected application tables without obsolete role tables", async () => {
+  it("creates protected application tables without obsolete role tables", async () => {
     const db = new PGlite();
     try {
       await setupSystem(db);
@@ -24,6 +24,7 @@ describe("initial VANBOOK schema migration", () => {
         "operator_applications",
         "operator_document_requirements",
         "operator_documents",
+        "operator_vehicle_photos",
         "operator_vehicles",
         "users",
       ]);

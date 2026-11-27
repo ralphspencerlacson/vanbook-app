@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-export function BrandMark() {
+export function BrandMark({ href = "/" }: { href?: string }) {
   return (
-    <Link className="welcome-brand" href="/" aria-label="VANBOOK PH home">
+    <Link className="welcome-brand" href={href} aria-label="VANBOOK PH home">
       <span className="welcome-brand-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
           <path

@@ -109,3 +109,72 @@ export async function saveRequirement(
     return { message: operationError({}) };
   }
 }
+
+export async function reviewDocument(
+  id: string,
+  version: number,
+  status: string,
+  note: string,
+): Promise<OperatorActionResult> {
+  if (
+    !isUuid(id) ||
+    !Number.isSafeInteger(version) ||
+    version < 1 ||
+    !["approved", "changes_requested"].includes(status) ||
+    typeof note !== "string" ||
+    note.length > 3000 ||
+    (status === "changes_requested" && !note.trim())
+  )
+    return {
+      message:
+        "Choose a valid review result and explain any requested replacement.",
+    };
+  try {
+    const actor = await getActor();
+    if (!actor.user || !actor.isAdmin || !actor.ready)
+      return { message: "Administrator access is required." };
+    const result = await actor.supabase.rpc("review_operator_document", {
+      p_id: id,
+      p_version: version,
+      p_status: status,
+      p_note: note.trim(),
+    });
+    if (result.error) return { message: operationError(result.error) };
+    revalidatePath("/admin", "layout");
+    revalidatePath("/operator", "layout");
+    return { success: true, message: "Document review saved." };
+  } catch {
+    return {
+      message: "The document review could not be saved. Please try again.",
+    };
+  }
+}
+export async function reviewVehicle(
+  id: string,
+  version: number,
+  status: string,
+): Promise<OperatorActionResult> {
+  if (
+    !isUuid(id) ||
+    !Number.isSafeInteger(version) ||
+    version < 1 ||
+    !["published", "rejected"].includes(status)
+  )
+    return { message: "Refresh the vehicle before reviewing." };
+  try {
+    const actor = await getActor();
+    if (!actor.user || !actor.isAdmin || !actor.ready)
+      return { message: "Administrator access is required." };
+    const result = await actor.supabase.rpc("set_vehicle_status", {
+      p_id: id,
+      p_version: version,
+      p_status: status,
+    });
+    if (result.error) return { message: operationError(result.error) };
+    revalidatePath("/admin", "layout");
+    revalidatePath("/operator", "layout");
+    return { success: true, message: "Vehicle review saved." };
+  } catch {
+    return { message: "The vehicle review could not be saved." };
+  }
+}

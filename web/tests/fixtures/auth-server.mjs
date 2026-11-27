@@ -1,6 +1,6 @@
 // Test-only Auth provider and PostgreSQL HTTP adapter, bound to loopback.
 import { createServer } from "node:http";
-import { createHash, createHmac } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import {
   OPERATOR_ID,
   ADMIN_ID,
@@ -11,6 +11,8 @@ import {
   setVerificationDelay,
   resetOperatorData,
   handleOperatorApi,
+  saveFixtureAuthUser,
+  removeFixtureAuthUser,
 } from "./operator-api.mjs";
 
 let user, challenge, usedCode, refreshes;
@@ -70,7 +72,8 @@ function session(expired = false, actor = user) {
   };
 }
 function authenticated(req) {
-  if (req.headers.authorization === "Bearer sb_secret_local-test-only") return { id: ADMIN_ID, service_role: true };
+  if (req.headers.authorization === "Bearer sb_secret_local-test-only")
+    return { id: ADMIN_ID, service_role: true };
   try {
     const token = String(req.headers.authorization ?? "").replace(
       /^Bearer /,
@@ -124,9 +127,33 @@ createServer(async (req, res) => {
     send(status, { code, error_code: code, msg: code });
   }
   if (url.pathname === "/health") return send(200, { ok: true });
+  if (
+    url.pathname.startsWith("/storage/v1/object/sign/operator-documents/") &&
+    req.method === "GET" &&
+    url.searchParams.get("token") === "fixture-only"
+  ) {
+    res.writeHead(200, { "Content-Type": "image/png" });
+    return res.end(
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+  }
   if (url.pathname === "/test/reset") {
     reset();
     await resetOperatorData();
+    return send(200, {});
+  }
+  if (url.pathname === "/test/account/create") {
+    const id = body.email === "admin@example.test" ? ADMIN_ID : OPERATOR_ID;
+    const value = profile(body.email, id);
+    value.email_confirmed_at =
+      body.confirmed === false ? null : "2026-11-27T00:00:00Z";
+    await saveFixtureAuthUser(value);
+    accounts.set(value.email, value);
+    passwords.set(id, body.password ?? "strong test password");
+    user = value;
     return send(200, {});
   }
   if (url.pathname === "/test/operator/pending") {
@@ -160,6 +187,34 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/test/expired-session") return send(200, session(true));
   const actor = authenticated(req);
+  if (
+    url.pathname === "/auth/v1/admin/users" &&
+    req.method === "POST" &&
+    actor?.service_role
+  ) {
+    if (accounts.has(body.email)) return fail(422, "email_exists");
+    const value = profile(body.email, "60000000-" + randomUUID().slice(9));
+    value.user_metadata = body.user_metadata ?? {};
+    value.email_confirmed_at = body.email_confirm
+      ? "2026-11-27T00:00:00Z"
+      : null;
+    await saveFixtureAuthUser(value);
+    accounts.set(value.email, value);
+    passwords.set(value.id, body.password);
+    user = value;
+    return send(200, value);
+  }
+  if (
+    url.pathname.startsWith("/auth/v1/admin/users/") &&
+    req.method === "DELETE" &&
+    actor?.service_role
+  ) {
+    const id = url.pathname.split("/").at(-1);
+    await removeFixtureAuthUser(id);
+    for (const [email, value] of accounts)
+      if (value.id === id) accounts.delete(email);
+    return send(200, {});
+  }
   if (await handleOperatorApi(req, res, url, body, actor, send)) return;
   if (url.pathname === "/auth/v1/signup") {
     const email = body.email;
@@ -172,7 +227,15 @@ createServer(async (req, res) => {
     usedCode = false;
     return send(200, user);
   }
-  if (url.pathname === "/auth/v1/resend") return send(200, {});
+  if (url.pathname === "/auth/v1/resend") {
+    const value = accounts.get(body.email);
+    if (value) {
+      user = value;
+      challenge = body.code_challenge;
+      usedCode = false;
+    }
+    return send(200, {});
+  }
   if (url.pathname === "/auth/v1/recover") {
     const account = accounts.get(body.email);
     if (account) {
@@ -197,6 +260,7 @@ createServer(async (req, res) => {
       usedCode = true;
       activeUsers.add(user.id);
       user.email_confirmed_at = "2026-11-27T00:00:00Z";
+      await saveFixtureAuthUser(user);
       return send(200, session());
     }
     if (grant === "password") {

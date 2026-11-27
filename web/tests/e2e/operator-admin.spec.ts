@@ -134,7 +134,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await expect(registration.getByLabel("Extra certificate")).toHaveCount(0);
   expect(
     await registration
-      .locator('input[type="file"]')
+      .locator('input[type="file"][name^="document:"]')
       .evaluateAll((nodes) => nodes.map((node) => node.id)),
   ).toEqual([
     "document:supporting_document",
@@ -148,18 +148,10 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await customer.close();
 });
 async function register(page: Page, email: string, destination = "/account") {
-  await page.goto("/register");
-  await page
-    .getByRole("textbox", { name: "Email address", exact: true })
-    .fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByLabel("Confirm password").fill(password);
-  await page
-    .getByRole("button", { name: "Create account", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toContainText("confirmation email");
-  await page.goto("/auth/callback?code=test-confirmation-code&next=%2Faccount");
-  await expect(page).toHaveURL(new RegExp(destination + "$"));
+  await page.request.post(fixture + "/test/account/create", {
+    data: { email, password },
+  });
+  await signIn(page, email, destination);
 }
 async function signIn(page: Page, email: string, destination = "/account") {
   await page.goto("/sign-in");
@@ -286,14 +278,17 @@ test("roles separate customer, pending operator and administrator access, with a
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "awaiting approval" }),
+    page.getByRole("heading", { name: "Application submitted", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Edit application", exact: true }),
   ).toBeVisible();
   await page.goto("/admin");
-  await expect(page).toHaveURL(/sign-in/);
+  await expect(page).toHaveURL(/\/operator$/);
   await request.post(fixture + "/test/operator/approve");
-  await signIn(page, operatorEmail, "/admin");
+  await signIn(page, operatorEmail, "/operator/requests");
   await expect(
-    page.getByRole("heading", { name: "My business", exact: true }),
+    page.getByRole("heading", { name: "Requests", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Users", exact: true }),

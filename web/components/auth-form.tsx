@@ -49,7 +49,13 @@ export function AuthForm({
       if (response.redirectTo) {
         setPassword("");
         setConfirmPassword("");
-        if (!registering && (response.redirectTo === "/admin" || response.redirectTo.startsWith("/admin/"))) {
+        if (
+          !registering &&
+          (response.redirectTo === "/admin" ||
+            response.redirectTo.startsWith("/admin/") ||
+            response.redirectTo === "/operator" ||
+            response.redirectTo.startsWith("/operator/"))
+        ) {
           enter(response.redirectTo);
         } else {
           window.location.assign(response.redirectTo);

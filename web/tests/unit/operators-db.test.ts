@@ -32,7 +32,9 @@ beforeEach(async () => {
   await db.exec("begin;");
   // These isolation/review cases use the original optional checklist. Dedicated
   // checklist tests exercise the six active product requirements separately.
-  await db.exec("update public.operator_document_requirements set active=false where code <> 'supporting_document'");
+  await db.exec(
+    "update public.operator_document_requirements set active=false where code <> 'supporting_document'",
+  );
 });
 afterEach(async () => {
   await db.exec("rollback; reset role;");
@@ -94,13 +96,13 @@ describe("VANBOOK roles, registration and document permissions", () => {
       db.query("select * from public.get_managed_vehicles()"),
     ).rejects.toMatchObject({ code: "42501" });
   });
-  it("blocks pending operators from reading business and document data", async () => {
+  it("allows pending operators to read only their own application for review tracking", async () => {
     const a = await draft(db);
     await submit(db, a.id);
     await actor(db, IDS.operator);
     expect(
-      (await db.query("select * from public.operator_applications")).rows,
-    ).toEqual([]);
+      (await db.query("select id from public.operator_applications")).rows,
+    ).toEqual([{ id: a.id }]);
     expect(
       (await db.query("select * from public.operator_documents")).rows,
     ).toEqual([]);
