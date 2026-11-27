@@ -77,8 +77,13 @@ test("operator sessions keep their portal across navigation and guest routes", a
   const header = page.locator(".site-header");
   await expect(header.getByRole("link", { name: "Go to operator dashboard", exact: true })).toBeVisible();
   await expect(header.getByRole("link", { name: "Log in", exact: true })).toHaveCount(0);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await header.getByRole("button", { name: "Open navigation menu", exact: true }).click();
+  await expect(header.getByRole("link", { name: "Go to operator dashboard", exact: true })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
   await header.getByRole("link", { name: "Go to operator dashboard", exact: true }).click();
   await expect(page).toHaveURL(/\/operator$/);
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/sign-in?next=%2Foperator%2Fdocuments");
   await expect(page).toHaveURL(/\/operator\/documents$/);
   await expect(page.locator(".site-header").getByRole("link", { name: "Operator log in", exact: true })).toHaveCount(0);

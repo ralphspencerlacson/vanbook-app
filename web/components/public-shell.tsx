@@ -4,6 +4,7 @@ import { SignOutButton } from "./sign-out-button";
 import { Suspense } from "react";
 import { PublicAccountActions, PublicAccountLoading } from "./public-account-actions";
 import { SessionRefresh } from "./session-refresh";
+import { PublicNavigation } from "./public-navigation";
 
 export function PublicHeader({
   operator = false,
@@ -38,19 +39,13 @@ export function PublicHeader({
             </div>
           </>
         ) : (
-          <>
-            <nav className="site-header-links" aria-label="Main navigation">
-              <Link href="/#how-it-works">How it works</Link>
-              <Link href="/#popular-routes">Popular routes</Link>
-              <Link href="/#corporate">Corporate trips</Link>
-              <Link href="/#for-operators">For operators</Link>
-            </nav>
-            <div className="site-header-actions">
+          <PublicNavigation
+            accountActions={
               <Suspense fallback={<PublicAccountLoading />}>
                 <PublicAccountActions operator={false} />
               </Suspense>
-            </div>
-          </>
+            }
+          />
         )}
       </div>
     </header>
