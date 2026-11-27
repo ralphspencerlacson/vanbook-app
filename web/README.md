@@ -77,40 +77,24 @@ editable user metadata. The account page verifies the current user on the
 server. Operator/admin workspaces also check protected membership and enforce
 record ownership through RLS.
 
-## Existing database inspection
+## Hosted database setup
 
 Target project: `pphyhsdpdsycfaleflyv`.
 
-The publishable key verifies connectivity to Supabase Auth. It does not grant
-database-administration access. The schema endpoint currently requires a secret
-key; a successful Auth check does not establish that the database is empty or
-that its RLS/storage configuration is correct.
+The initial SQL Editor inspection on 27 November 2026 found no application
+tables or storage buckets. The application schema has since been created through
+the three versioned SQL files in `../supabase/migrations`, all recorded as applied
+on that date. Generated public-schema types are in `lib/supabase/database.types.ts`.
 
-On 27 November 2026, the user ran `../supabase/inspection.sql` in the project's
-SQL Editor and supplied the result. The normalized snapshot is saved in
-`../supabase/inspection-report.json`; it was not retrieved through a connector.
+Follow [the hosted setup guide](../supabase/README.md) for a new project. Keep
+`../supabase/bootstrap-admin.sql` for explicitly assigning the initial super admin
+and `../supabase/verify-onboarding.sql` for read-only setup checks. Both scripts
+are also exercised by the migration tests.
 
-The report shows:
-
-- No public tables, views, columns, indexes, constraints, or functions.
-- No public table grants or policies in the public/storage schemas.
-- No storage buckets.
-- Only Supabase's standard schemas in the returned schema list; no additional
-  application schema was listed.
-
-Step 2's connection setup and initial schema inspection are complete. No tables,
-policies, buckets, users, or migrations have been created in this increment.
-Application schema changes will be introduced through versioned migrations;
-database types will be generated when application tables are introduced.
-
-The inspection does not read Auth users, application records, document contents,
-or dashboard Auth settings. It does not establish whether any Auth accounts
-exist. Step 3's read-only Auth settings check confirmed that email signup is
-enabled and automatic email confirmation is disabled. Dashboard redirect URLs,
-email templates, SMTP configuration, and real inbox delivery remain unverified.
-
-The SELECT-only inspection query can be rerun in the SQL Editor if needed. The
-saved snapshot describes the supplied result, not a live view of the project.
+Historical inspection/deployment reports and the one-time inspection query have
+been removed. Use the hosted project's current metadata and verification checks
+instead of a saved snapshot. Never rerun the initial migration on the existing
+project; add a new migration for schema changes.
 
 ## Email/password authentication and responsive layout
 
