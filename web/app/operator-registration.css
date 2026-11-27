@@ -29,9 +29,14 @@
 }
 .operator-registration-page .operator-registration-layout {
   grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 18px;
+  grid-template-areas: "heading ." "steps checklist";
+  gap: 14px 18px;
+}
+.operator-registration-layout > .operator-page-heading {
+  grid-area: heading;
 }
 .operator-registration-page .operator-registration-main {
+  grid-area: steps;
   gap: 14px;
 }
 .operator-registration-page .operator-page-heading {
@@ -278,6 +283,7 @@
   font-size: 11px;
 }
 .operator-registration-page .operator-checklist {
+  grid-area: checklist;
   padding: 18px;
   border: 0;
   top: 20px;
@@ -333,9 +339,7 @@
 @media (max-width: 800px) {
   .operator-registration-page .operator-registration-layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .operator-registration-page .operator-checklist {
-    grid-row: auto;
+    grid-template-areas: "heading" "steps" "checklist";
   }
 }
 @media (max-width: 560px) {

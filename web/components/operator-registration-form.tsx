@@ -130,15 +130,15 @@ export function OperatorRegistrationForm({
       onChange={checkCompletion}
       aria-busy={pending}
     >
+      {heading}
       <div className="operator-registration-main">
-        {heading}
-        {result && (
-          <p role="alert" className="requirements-error">
-            {result.message}
-          </p>
-        )}
         <section className="operator-panel operator-business-details">
           <h2>1 · Business details</h2>
+          {result && (
+            <p role="alert" className="requirements-error">
+              {result.message}
+            </p>
+          )}
           <div className="operator-form-grid">
             {fields.map(([key, label, type, max]) => (
               <div key={key} className={key === "service_areas" ? "operator-service-areas" : undefined}>

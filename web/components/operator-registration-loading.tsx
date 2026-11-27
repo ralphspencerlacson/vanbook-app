@@ -17,8 +17,8 @@ export function OperatorRegistrationLoading({ heading }: { heading: ReactNode })
   return (
     <div className="operator-registration-layout registration-skeleton" aria-busy="true">
       <p className="sr-only" role="status">Loading your operator registration form…</p>
+      {heading}
       <div className="operator-registration-main">
-        {heading}
         <div className="operator-panel" aria-hidden="true">
           <h2>1 · Business details</h2>
           <Fields count={6} />
