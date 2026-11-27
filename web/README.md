@@ -32,6 +32,20 @@ Open http://localhost:3000. Restart the development server after changing the
 environment. Public environment variables are embedded in browser bundles at
 build time, so deployments need these variables set before building.
 
+## Production environment checks
+
+Production builds validate NEXT_PUBLIC_SUPABASE_URL,
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, and SITE_URL before generating pages.
+Missing or invalid configuration fails the build with the variable names,
+preventing deployment of a request proxy that returns 500 on every page.
+
+In Vercel, the two NEXT_PUBLIC_ variables and SITE_URL use visibility config.
+SUPABASE_SECRET_KEY is server-only and uses visibility secret; it is needed for
+operator registration and administrator invitations, but optional for ordinary
+customer sign-in. SITE_URL must be the deployed HTTPS origin on Vercel.
+Environment updates require a new deployment because public values are embedded
+in the build. No environment values are committed or printed in validation errors.
+
 ## Supabase connection
 
 - `lib/supabase/env.ts`: validates configuration when a client is created.
