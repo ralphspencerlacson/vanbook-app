@@ -13,6 +13,7 @@ async function Content() {
         application={actor.application}
         documents={actor.documents}
         requirements={actor.requirements}
+        vehicles={actor.vehicles}
       />
     </>
   );

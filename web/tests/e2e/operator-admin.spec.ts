@@ -26,6 +26,8 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await insurance.click();
   const drawer = page.getByRole("dialog", { name: "Edit requirement" });
   await expect(drawer).toBeVisible();
+  await expect(drawer.getByLabel("Applies to")).toHaveValue("van");
+  await drawer.getByLabel("Applies to").selectOption("user");
   await drawer
     .getByLabel("Upload instructions")
     .fill("Upload a readable insurance certificate.");
@@ -34,6 +36,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await drawer.getByRole("button", { name: "Save changes" }).click();
   await expect(drawer).not.toBeVisible();
   await expect(insurance).toContainText("Optional");
+  await expect(insurance).toContainText("Per user");
   await expect(insurance).toContainText(
     "Upload a readable insurance certificate.",
   );
@@ -141,10 +144,10 @@ test("document checklist uses a table and row edit drawer, and drives registrati
     "document:supporting_document",
     "document:insurance",
     "document:ltfrb_franchise",
-    "document:vehicle_or_cr",
     "document:driver_license",
     "document:business_permit",
     "document:bir_form_2303",
+    "document:0:vehicle_or_cr",
   ]);
   await customer.close();
 });

@@ -102,6 +102,26 @@ function RequirementEditor({
             />
           </div>
           <div>
+            <label className="field-label" htmlFor={`${fieldId}-scope`}>
+              Applies to
+            </label>
+            <select
+              id={`${fieldId}-scope`}
+              name="scope"
+              className="field-input"
+              defaultValue={requirement?.scope ?? "user"}
+              disabled={pending}
+            >
+              <option value="user">Per user</option>
+              <option value="van">Per van</option>
+            </select>
+            <p className="requirements-field-help">
+              Per user: upload once for the operator account. Per van: upload
+              for each vehicle. Existing uploads are not reassigned when this
+              changes.
+            </p>
+          </div>
+          <div>
             <label className="field-label" htmlFor={`${fieldId}-description`}>
               Upload instructions <span>(optional)</span>
             </label>
@@ -418,6 +438,9 @@ export function DocumentRequirementsForm({
                     <span className="requirements-document-name">
                       {item.label}
                     </span>
+                    <small>
+                      {item.scope === "van" ? "Per van" : "Per user"}
+                    </small>
                     {item.description && <p>{item.description}</p>}
                   </th>
                   <td>

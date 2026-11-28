@@ -65,7 +65,9 @@ export async function resubmitApplication(form: FormData): Promise<Result> {
   if (
     files.some(
       ([key]) =>
-        !requirements.data.some((item) => key === `document:${item.code}`),
+        !requirements.data.some(
+          (item) => item.scope !== "van" && key === `document:${item.code}`,
+        ),
     )
   )
     return { message: "The checklist changed. Refresh before uploading." };
@@ -124,6 +126,7 @@ export async function saveVehicle(form: FormData): Promise<Result> {
     if (
       files.some(
         ([key]) =>
+          !key.startsWith("document:") &&
           !photoPositions.some((position) => key === `photo:van:${position}`),
       )
     )
@@ -147,6 +150,23 @@ export async function saveVehicle(form: FormData): Promise<Result> {
     .maybeSingle();
   if (application.error || !application.data)
     return { message: "Your application is unavailable." };
+  const requirements = await actor.supabase
+    .from("operator_document_requirements")
+    .select()
+    .eq("active", true)
+    .eq("scope", "van");
+  if (requirements.error)
+    return { message: "Unable to load the van document checklist. Try again." };
+  if (
+    files.some(
+      ([key]) =>
+        key.startsWith("document:") &&
+        !requirements.data.some((item) => key === `document:${item.code}`),
+    )
+  )
+    return {
+      message: "The document checklist changed. Refresh before uploading.",
+    };
   if (id) {
     const vehicle = await actor.supabase.rpc("get_managed_vehicles", {
       p_id: id,
@@ -159,6 +179,7 @@ export async function saveVehicle(form: FormData): Promise<Result> {
   try {
     admin = createAdminClient();
     const photos = [];
+    const documents = [];
     for (const [key, file] of files) {
       const uploaded = await uploadOperatorFile(
         admin,
@@ -167,13 +188,16 @@ export async function saveVehicle(form: FormData): Promise<Result> {
         file,
       );
       paths.push(uploaded.storage_path);
-      photos.push({ position: key.split(":").at(-1), ...uploaded });
+      if (key.startsWith("document:"))
+        documents.push({ category: key.slice(9), ...uploaded });
+      else photos.push({ position: key.split(":").at(-1), ...uploaded });
     }
     const result = await actor.supabase.rpc("save_operator_vehicle", {
       p_id: id || null,
       p_version: version,
       p_details: details,
       p_photos: photos,
+      p_documents: documents,
     });
     if (result.error) {
       await cleanUnreferencedUploads(admin, paths);

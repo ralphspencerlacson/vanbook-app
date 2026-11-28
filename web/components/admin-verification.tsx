@@ -85,12 +85,16 @@ export async function AdminVerification({
   }).formatToParts(now);
   const monthStart = `${parts.find((p) => p.type === "year")!.value}-${parts.find((p) => p.type === "month")!.value}-01T00:00:00+08:00`;
   let query = actor.supabase
-    .from("operator_applications")
+    .from("operator_verification_queue")
     .select("*", { count: "exact" })
     .order("updated_at", { ascending: false })
     .order("id", { ascending: false })
     .range((page - 1) * 25, page * 25 - 1);
-  if (status !== "all") query = query.eq("status", status);
+  if (status === "submitted")
+    query = query.or(
+      "status.eq.submitted,and(status.eq.approved,pending_vehicle_count.gt.0)",
+    );
+  else if (status !== "all") query = query.eq("status", status);
   if (search) {
     const pattern = JSON.stringify(`%${search}%`);
     query = query.or(
@@ -101,9 +105,11 @@ export async function AdminVerification({
     await Promise.all([
       query,
       actor.supabase
-        .from("operator_applications")
+        .from("operator_verification_queue")
         .select("id", { count: "exact", head: true })
-        .eq("status", "submitted"),
+        .or(
+          "status.eq.submitted,and(status.eq.approved,pending_vehicle_count.gt.0)",
+        ),
       actor.supabase
         .from("operator_applications")
         .select("id", { count: "exact", head: true })
@@ -125,7 +131,9 @@ export async function AdminVerification({
     ]);
   if ([result, waiting, approved, aged, rejected].some((r) => r.error))
     throw new Error("Unable to load operator verification.");
-  const rows = result.data as OperatorApplication[];
+  const rows = result.data as (OperatorApplication & {
+    pending_vehicle_count: number;
+  })[];
   // This existing management RPC caps its response at 200. Show no per-operator
   // count if it may be truncated, rather than presenting incomplete totals.
   const vehicleCounts: Map<string, number> | null =
@@ -140,7 +148,9 @@ export async function AdminVerification({
         vehicle.operator_id,
         (vehicleCounts.get(vehicle.operator_id) ?? 0) + 1,
       );
-  let app = selected ? rows.find((r) => r.id === selected) : rows[0];
+  let app: OperatorApplication | undefined = selected
+    ? rows.find((r) => r.id === selected)
+    : rows[0];
   if (selected && !app) {
     const record = await actor.supabase
       .from("operator_applications")
@@ -331,11 +341,14 @@ export async function AdminVerification({
                     </td>
                     <td>
                       <span className={`status-badge status-${row.status}`}>
-                        {row.status === "submitted"
-                          ? "New"
-                          : row.status === "changes_requested"
-                            ? "Needs changes"
-                            : statusLabels[row.status]}
+                        {row.status === "approved" &&
+                        row.pending_vehicle_count > 0
+                          ? "Additional van review"
+                          : row.status === "submitted"
+                            ? "Initial registration"
+                            : row.status === "changes_requested"
+                              ? "Needs changes"
+                              : statusLabels[row.status]}
                       </span>
                     </td>
                   </tr>

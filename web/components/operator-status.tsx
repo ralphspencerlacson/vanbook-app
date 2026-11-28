@@ -1,3 +1,4 @@
+import type { OperatorVehicle } from "@/lib/operators/vehicles";
 import Link from "next/link";
 import type {
   ApplicationDocument,
@@ -44,8 +45,10 @@ export function OperatorStatus({
   application,
   documents,
   requirements,
+  vehicles,
 }: {
   application: OperatorApplication;
+  vehicles: OperatorVehicle[];
   documents: ApplicationDocument[];
   requirements: DocumentRequirement[];
 }) {
@@ -100,14 +103,19 @@ export function OperatorStatus({
       <OperatorDocumentStatus
         documents={documents}
         requirements={requirements}
+        vehicles={vehicles}
       />
     </main>
   );
 }
-export function OperatorDocumentStatus({
+function DocumentStatusSection({
   documents,
   requirements,
+  title,
+  vehicle = false,
 }: {
+  title: string;
+  vehicle?: boolean;
   documents: ApplicationDocument[];
   requirements: DocumentRequirement[];
 }) {
@@ -131,10 +139,16 @@ export function OperatorDocumentStatus({
   ];
   return (
     <section className="operator-panel operator-document-status">
-      <h2>Your document review</h2>
+      <h2>{title}</h2>
       <p className="operator-muted">
         Each uploaded file has its own review result. Replace documents marked
-        “Resubmit” through Edit application.
+        “Resubmit” through{" "}
+        {vehicle ? (
+          <Link href="/operator/vans">Manage van documents</Link>
+        ) : (
+          <Link href="/operator/application">Replace shared documents</Link>
+        )}
+        .
       </p>
       <div>
         {categories.map((item) => {
@@ -177,5 +191,46 @@ export function OperatorDocumentStatus({
         })}
       </div>
     </section>
+  );
+}
+
+export function OperatorDocumentStatus({
+  documents,
+  requirements,
+  vehicles = [],
+}: {
+  documents: ApplicationDocument[];
+  requirements: DocumentRequirement[];
+  vehicles?: OperatorVehicle[];
+}) {
+  const fleet = [...vehicles].sort(
+    (a, b) =>
+      a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+  );
+  return (
+    <>
+      <DocumentStatusSection
+        title="Shared user document review"
+        documents={documents.filter(
+          (document) =>
+            !document.vehicle_id &&
+            !requirements.some(
+              (item) => item.code === document.category && item.scope === "van",
+            ),
+        )}
+        requirements={requirements.filter((item) => item.scope !== "van")}
+      />
+      {fleet.map((van, index) => (
+        <DocumentStatusSection
+          key={van.id}
+          title={`Van ${index + 1} · ${van.title} · ${van.plate_number}`}
+          vehicle
+          documents={documents.filter(
+            (document) => document.vehicle_id === van.id,
+          )}
+          requirements={requirements.filter((item) => item.scope === "van")}
+        />
+      ))}
+    </>
   );
 }

@@ -90,7 +90,7 @@ describe("dynamic document checklist", () => {
       "update public.operator_document_requirements set required=false",
     );
     await db.query(
-      "update public.operator_document_requirements set required=true where code='insurance'",
+      "update public.operator_document_requirements set required=true,scope='user' where code='insurance'",
     );
     await db.exec("savepoint missing_document;");
     await expect(

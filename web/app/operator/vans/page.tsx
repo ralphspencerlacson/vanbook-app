@@ -5,12 +5,10 @@ import { OperatorDocumentStatus } from "@/components/operator-status";
 import { OperatorWorkspace } from "@/components/operator-workspace";
 import { OperatorVehicleManager } from "@/components/operator-vehicle-manager";
 import { LoginArrival } from "@/components/login-transition";
-import type { OperatorVehicle, VehiclePhoto } from "@/lib/operators/vehicles";
+import type { VehiclePhoto } from "@/lib/operators/vehicles";
 async function Content() {
   const actor = await getOperatorDocuments();
-  const vehicles = await actor.supabase.rpc("get_managed_vehicles");
-  if (vehicles.error) throw new Error("Unable to load your vehicles.");
-  const records = vehicles.data as OperatorVehicle[];
+  const records = actor.vehicles;
   const photos = records.length
     ? await actor.supabase
         .from("operator_vehicle_photos")
@@ -32,6 +30,8 @@ async function Content() {
         photos={photos.data as VehiclePhoto[]}
         approved={actor.application.status === "approved"}
         location={actor.application.operating_base}
+        documents={actor.documents}
+        requirements={actor.requirements}
       />
       <div className="operator-fleet-extras">
         <section className="operator-panel">
@@ -48,6 +48,7 @@ async function Content() {
         <OperatorDocumentStatus
           documents={actor.documents}
           requirements={actor.requirements}
+          vehicles={actor.vehicles}
         />
       </div>
     </OperatorWorkspace>

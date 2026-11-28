@@ -8,6 +8,7 @@ import {
 } from "@/app/register/operator/actions";
 import type { DocumentRequirement } from "@/lib/operators/types";
 import { VehicleFields } from "./vehicle-fields";
+import { VehicleDocumentFields } from "./vehicle-document-fields";
 import { useHydrated } from "./use-hydrated";
 const fields = [
   ["business_name", "Registered business name", "text", 200],
@@ -24,8 +25,14 @@ const fields = [
   ["service_areas", "Service areas (separate with commas)", "text", 3000],
 ] as const;
 const serviceAreaOptions = [
-  "Metro Manila", "Rizal", "Laguna", "Cavite",
-  "Batangas", "Bulacan", "Pampanga", "Quezon",
+  "Metro Manila",
+  "Rizal",
+  "Laguna",
+  "Cavite",
+  "Batangas",
+  "Bulacan",
+  "Pampanga",
+  "Quezon",
 ];
 const placeholders: Record<string, string> = {
   business_name: "As on DTI/SEC registration",
@@ -52,7 +59,9 @@ export function OperatorRegistrationForm({
   const [declaration, setDeclaration] = useState(false);
   const [serviceAreas, setServiceAreas] = useState("");
   const [businessFieldsReady, setBusinessFieldsReady] = useState(false);
-  const [vehicleCompletion, setVehicleCompletion] = useState<Record<string, boolean>>({});
+  const [vehicleCompletion, setVehicleCompletion] = useState<
+    Record<string, boolean>
+  >({});
   const busy = useRef(false);
   const next = useRef(1);
   const hydrated = useHydrated();
@@ -91,37 +100,64 @@ export function OperatorRegistrationForm({
       setPending(false);
     }
   }
-  const required = requirements.filter((item) => item.required);
-  const uploaded = required.filter((item) => files[`document:${item.code}`]).length;
-  const documentsReady = required.every(
-    (item) => !!files[`document:${item.code}`],
+  const required = requirements
+    .filter((item) => item.required)
+    .flatMap((item) =>
+      item.scope === "van"
+        ? vehicles.map((key) => `document:${key}:${item.code}`)
+        : [`document:${item.code}`],
+    );
+  const uploaded = required.filter((key) => files[key]).length;
+  const documentsReady = required.every((key) => !!files[key]);
+  const sharedRequired = requirements.filter(
+    (item) => item.required && item.scope !== "van",
   );
-  const selectedAreas = serviceAreas.split(",")
-    .map((area) => area.trim()).filter(Boolean);
+  const sharedUploaded = sharedRequired.filter(
+    (item) => files[`document:${item.code}`],
+  ).length;
+  const selectedAreas = serviceAreas
+    .split(",")
+    .map((area) => area.trim())
+    .filter(Boolean);
   const businessReady = businessFieldsReady && selectedAreas.length > 0;
   const vehiclesReady = vehicles.every((key) => vehicleCompletion[key]);
   function checkCompletion(event: FormEvent<HTMLFormElement>) {
     const form = event.currentTarget;
     const complete = (selector: string) =>
-      Array.from(form.querySelectorAll<HTMLInputElement>(selector))
-        .every((input) => input.validity.valid);
+      Array.from(form.querySelectorAll<HTMLInputElement>(selector)).every(
+        (input) => input.validity.valid,
+      );
     const values = new FormData(form);
     setBusinessFieldsReady(
-      complete('.operator-business-details input[required]:not([name="service_areas"])') &&
-      values.get("password") === values.get("confirmPassword"),
+      complete(
+        '.operator-business-details input[required]:not([name="service_areas"])',
+      ) && values.get("password") === values.get("confirmPassword"),
     );
-    setVehicleCompletion(Object.fromEntries(
-      Array.from(form.querySelectorAll<HTMLElement>("[data-vehicle-key]")).map((vehicle) => [
-        vehicle.dataset.vehicleKey!,
-        Array.from(vehicle.querySelectorAll<HTMLInputElement>("input[required]")).every((input) => input.validity.valid),
-      ]),
-    ));
+    setVehicleCompletion(
+      Object.fromEntries(
+        Array.from(
+          form.querySelectorAll<HTMLElement>("[data-vehicle-key]"),
+        ).map((vehicle) => [
+          vehicle.dataset.vehicleKey!,
+          Array.from(
+            vehicle.querySelectorAll<HTMLInputElement>("input[required]"),
+          ).every((input) => input.validity.valid),
+        ]),
+      ),
+    );
   }
   function toggleArea(area: string) {
-    const selected = selectedAreas.some((value) => value.toLowerCase() === area.toLowerCase());
-    setServiceAreas((selected
-      ? selectedAreas.filter((value) => value.toLowerCase() !== area.toLowerCase())
-      : [...selectedAreas, area]).join(", "));
+    const selected = selectedAreas.some(
+      (value) => value.toLowerCase() === area.toLowerCase(),
+    );
+    setServiceAreas(
+      (selected
+        ? selectedAreas.filter(
+            (value) => value.toLowerCase() !== area.toLowerCase(),
+          )
+        : [...selectedAreas, area]
+      ).join(", "),
+    );
   }
   return (
     <form
@@ -141,35 +177,49 @@ export function OperatorRegistrationForm({
           )}
           <div className="operator-form-grid">
             {fields.map(([key, label, type, max]) => (
-              <div key={key} className={key === "service_areas" ? "operator-service-areas" : undefined}>
+              <div
+                key={key}
+                className={
+                  key === "service_areas" ? "operator-service-areas" : undefined
+                }
+              >
                 <label>
-                {label}
-                <input
-                  name={key}
-                  type={type}
-                  maxLength={max}
-                  placeholder={placeholders[key]}
-                  {...(key === "service_areas" ? {
-                    value: serviceAreas,
-                    onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
-                      setServiceAreas(event.target.value),
-                  } : {})}
-                  required={key !== "registration_number"}
-                  disabled={pending || !hydrated}
-                  aria-invalid={!!result?.errors?.[key]}
-                />
-                {result?.errors?.[key] && (
-                  <span className="field-error">{result.errors[key]}</span>
-                )}
+                  {label}
+                  <input
+                    name={key}
+                    type={type}
+                    maxLength={max}
+                    placeholder={placeholders[key]}
+                    {...(key === "service_areas"
+                      ? {
+                          value: serviceAreas,
+                          onChange: (
+                            event: React.ChangeEvent<HTMLInputElement>,
+                          ) => setServiceAreas(event.target.value),
+                        }
+                      : {})}
+                    required={key !== "registration_number"}
+                    disabled={pending || !hydrated}
+                    aria-invalid={!!result?.errors?.[key]}
+                  />
+                  {result?.errors?.[key] && (
+                    <span className="field-error">{result.errors[key]}</span>
+                  )}
                 </label>
                 {key === "service_areas" && (
-                  <span className="operator-service-area-options" role="group" aria-label="Popular service areas">
+                  <span
+                    className="operator-service-area-options"
+                    role="group"
+                    aria-label="Popular service areas"
+                  >
                     {serviceAreaOptions.map((area) => (
                       <button
                         type="button"
                         key={area}
                         disabled={pending || !hydrated}
-                        aria-pressed={selectedAreas.some((value) => value.toLowerCase() === area.toLowerCase())}
+                        aria-pressed={selectedAreas.some(
+                          (value) => value.toLowerCase() === area.toLowerCase(),
+                        )}
                         onClick={() => toggleArea(area)}
                       >
                         {area}
@@ -182,7 +232,10 @@ export function OperatorRegistrationForm({
           </div>
           <div className="operator-account-heading">
             <h3>Your operator account</h3>
-            <p>Confirm your email to track your application. Approval is required to receive requests.</p>
+            <p>
+              Confirm your email to track your application. Approval is required
+              to receive requests.
+            </p>
           </div>
           <div className="operator-form-grid operator-account-fields">
             <label>
@@ -224,70 +277,78 @@ export function OperatorRegistrationForm({
         </section>
         <section className="operator-panel">
           <div className="operator-panel-heading">
-            <h2>2 · Documents</h2>
+            <h2>2 · Shared user documents</h2>
             <span>
-              {uploaded} of {required.length} required ready
+              {sharedUploaded} of {sharedRequired.length} shared documents ready
             </span>
           </div>
           <progress
             className="operator-upload-progress"
-            max={Math.max(1, required.length)}
-            value={uploaded}
-            aria-label="Document upload progress"
+            max={Math.max(1, sharedRequired.length)}
+            value={sharedUploaded}
+            aria-label="Shared document upload progress"
           />
           <div className="operator-registration-documents">
-            {requirements.map((item) => (
-              <div className="operator-registration-document" key={item.code}>
-                <div>
-                  <label htmlFor={`document:${item.code}`}>{item.label}</label>
-                  {item.description && (
-                    <details className="operator-document-instructions">
-                      <summary>Instructions</summary>
-                      <p id={`document-help:${item.code}`}>{item.description}</p>
-                    </details>
-                  )}
-                  {files[`document:${item.code}`] && (
-                    <small className="operator-document-filename">
-                      {files[`document:${item.code}`].name}
-                    </small>
-                  )}
-                </div>
-                <span
-                  className={`requirement-badge ${files[`document:${item.code}`] ? "is-active" : item.required ? "is-required" : "is-optional"}`}
-                >
-                  {files[`document:${item.code}`]
-                    ? "Ready to submit"
-                    : item.required
-                      ? "Required"
-                      : "Optional"}
-                </span>
-                <div className={`operator-file-choice ${files[`document:${item.code}`] ? "has-file" : ""}`}>
-                  <span aria-hidden="true">
-                    {files[`document:${item.code}`] ? "Replace" : "Upload"}
+            {requirements
+              .filter((item) => item.scope !== "van")
+              .map((item) => (
+                <div className="operator-registration-document" key={item.code}>
+                  <div>
+                    <label htmlFor={`document:${item.code}`}>
+                      {item.label}
+                    </label>
+                    {item.description && (
+                      <details className="operator-document-instructions">
+                        <summary>Instructions</summary>
+                        <p id={`document-help:${item.code}`}>
+                          {item.description}
+                        </p>
+                      </details>
+                    )}
+                    {files[`document:${item.code}`] && (
+                      <small className="operator-document-filename">
+                        {files[`document:${item.code}`].name}
+                      </small>
+                    )}
+                  </div>
+                  <span
+                    className={`requirement-badge ${files[`document:${item.code}`] ? "is-active" : item.required ? "is-required" : "is-optional"}`}
+                  >
+                    {files[`document:${item.code}`]
+                      ? "Ready to submit"
+                      : item.required
+                        ? "Required"
+                        : "Optional"}
                   </span>
-                  <input
-                    id={`document:${item.code}`}
-                    aria-label={`${item.label} (${item.required ? "required" : "optional"})`}
-                    name={`document:${item.code}`}
-                    aria-describedby={
-                      item.description
-                        ? `document-help:${item.code}`
-                        : undefined
-                    }
-                    type="file"
-                    accept="application/pdf,image/png,image/jpeg"
-                    required={item.required}
-                    disabled={pending || !hydrated}
-                    onChange={(event) =>
-                      updateFile(
-                        `document:${item.code}`,
-                        event.target.files?.[0],
-                      )
-                    }
-                  />
+                  <div
+                    className={`operator-file-choice ${files[`document:${item.code}`] ? "has-file" : ""}`}
+                  >
+                    <span aria-hidden="true">
+                      {files[`document:${item.code}`] ? "Replace" : "Upload"}
+                    </span>
+                    <input
+                      id={`document:${item.code}`}
+                      aria-label={`${item.label} (${item.required ? "required" : "optional"})`}
+                      name={`document:${item.code}`}
+                      aria-describedby={
+                        item.description
+                          ? `document-help:${item.code}`
+                          : undefined
+                      }
+                      type="file"
+                      accept="application/pdf,image/png,image/jpeg"
+                      required={item.required}
+                      disabled={pending || !hydrated}
+                      onChange={(event) =>
+                        updateFile(
+                          `document:${item.code}`,
+                          event.target.files?.[0],
+                        )
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
           <p className="operator-muted">
             PDF, PNG, or JPEG. Documents and vehicle photos together must be 3
@@ -302,9 +363,17 @@ export function OperatorRegistrationForm({
             value={JSON.stringify(vehicles)}
           />
           {vehicles.map((key, index) => (
-            <div className="operator-registration-vehicle" key={key} data-vehicle-key={key}>
+            <div
+              className="operator-registration-vehicle"
+              key={key}
+              data-vehicle-key={key}
+            >
               <div className="operator-panel-heading">
-                <h3>{vehicles.length > 1 ? `Vehicle ${index + 1}` : "At least one van with a front photo"}</h3>
+                <h3>
+                  {vehicles.length > 1
+                    ? `Vehicle ${index + 1}`
+                    : "At least one van with a front photo"}
+                </h3>
                 {vehicles.length > 1 && (
                   <button
                     type="button"
@@ -315,7 +384,9 @@ export function OperatorRegistrationForm({
                       setFiles((previous) =>
                         Object.fromEntries(
                           Object.entries(previous).filter(
-                            ([name]) => !name.startsWith(`photo:${key}:`),
+                            ([name]) =>
+                              !name.startsWith(`photo:${key}:`) &&
+                              !name.startsWith(`document:${key}:`),
                           ),
                         ),
                       );
@@ -328,6 +399,12 @@ export function OperatorRegistrationForm({
               <VehicleFields
                 prefix={`vehicle:${key}:`}
                 photoPrefix={`photo:${key}:`}
+                disabled={pending || !hydrated}
+                onFilesChange={updateFile}
+              />
+              <VehicleDocumentFields
+                requirements={requirements}
+                prefix={`document:${key}:`}
                 disabled={pending || !hydrated}
                 onFilesChange={updateFile}
               />
@@ -383,8 +460,14 @@ export function OperatorRegistrationForm({
         <ul>
           {[
             { label: "Business details", complete: businessReady },
-            { label: `Documents (${uploaded}/${required.length})`, complete: documentsReady },
-            { label: "At least 1 vehicle with photos", complete: vehiclesReady },
+            {
+              label: `Documents (${uploaded}/${required.length})`,
+              complete: documentsReady,
+            },
+            {
+              label: "At least 1 vehicle with photos",
+              complete: vehiclesReady,
+            },
             { label: "Agreement accepted", complete: agreement && declaration },
           ].map((item) => (
             <li key={item.label} data-complete={item.complete}>
@@ -393,7 +476,9 @@ export function OperatorRegistrationForm({
               </span>
               <span>
                 {item.label}
-                <span className="sr-only">{item.complete ? ": complete" : ": incomplete"}</span>
+                <span className="sr-only">
+                  {item.complete ? ": complete" : ": incomplete"}
+                </span>
               </span>
             </li>
           ))}

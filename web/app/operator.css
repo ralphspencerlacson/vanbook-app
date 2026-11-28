@@ -1012,3 +1012,14 @@
     transition: none;
   }
 }
+.operator-vehicle-documents {
+  min-inline-size: 0;
+  margin: 1.5rem 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 1rem;
+}
+.operator-vehicle-documents legend {
+  font-weight: 700;
+}

@@ -8,16 +8,25 @@ import {
   type VehiclePhoto,
 } from "@/lib/operators/vehicles";
 import { VehicleFields } from "./vehicle-fields";
+import { VehicleDocumentFields } from "./vehicle-document-fields";
+import type {
+  ApplicationDocument,
+  DocumentRequirement,
+} from "@/lib/operators/types";
 export function OperatorVehicleManager({
   vehicles,
   photos,
   approved,
   location,
+  documents,
+  requirements,
 }: {
   vehicles: OperatorVehicle[];
   photos: VehiclePhoto[];
   approved: boolean;
   location: string;
+  documents: ApplicationDocument[];
+  requirements: DocumentRequirement[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
@@ -149,6 +158,10 @@ export function OperatorVehicleManager({
           vehicle={vehicles.find((vehicle) => vehicle.id === editing)}
           photos={photos.filter((photo) => photo.vehicle_id === editing)}
           location={location}
+          documents={documents.filter(
+            (document) => document.vehicle_id === editing,
+          )}
+          requirements={requirements}
           onClose={() => setEditing(null)}
           onSaved={(message) => {
             setNotice(message);
@@ -213,12 +226,16 @@ function VehicleDrawer({
   vehicle,
   photos,
   location,
+  documents,
+  requirements,
   onClose,
   onSaved,
 }: {
   vehicle?: OperatorVehicle;
   photos: VehiclePhoto[];
   location: string;
+  documents: ApplicationDocument[];
+  requirements: DocumentRequirement[];
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
@@ -279,8 +296,14 @@ function VehicleDrawer({
             photos={photos}
             disabled={pending}
           />
+          <VehicleDocumentFields
+            requirements={requirements}
+            documents={documents}
+            disabled={pending}
+          />
           <p className="operator-muted">
-            PNG or JPEG photos. Combined upload limit: 3 MB.
+            PDF, PNG, or JPEG documents; PNG or JPEG photos. Combined upload
+            limit: 3 MB.
           </p>
           {message && (
             <p role="alert" className="requirements-error">

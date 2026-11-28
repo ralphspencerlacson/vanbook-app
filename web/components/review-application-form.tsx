@@ -73,8 +73,8 @@ export function ReviewApplicationForm({
         <>
           <h2 className="workspace-section-title">Record review decision</h2>
           <p className="workspace-muted">
-            Approval covers the operator business only. Vehicle approval is
-            separate.
+            Initial approval covers the operator and first van together. Review
+            their required documents and the first van’s details and photos.
           </p>
           <div>
             <label className="field-label" htmlFor="review-decision">
@@ -128,7 +128,7 @@ export function ReviewApplicationForm({
             value="approved"
             disabled={pending}
           >
-            {pending ? "Saving…" : "Approve"}
+            {pending ? "Saving…" : "Approve operator and first van"}
           </button>
           <button
             className="admin-request-changes"

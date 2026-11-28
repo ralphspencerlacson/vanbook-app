@@ -149,3 +149,13 @@ Fixture validation does not verify hosted SMTP or Storage service behavior.
 Full Supabase TypeScript types were generated from the hosted public schema and
 saved in `web/lib/supabase/database.types.ts`. View/form contracts remain under
 `web/lib/operators`.
+
+## Per-user and per-van document verification
+
+Apply only the new migration `20261128000200_scoped_operator_documents.sql` to the existing project. It adds `operator_document_requirements.scope` (`user` or `van`) and `operator_documents.vehicle_id`. Administrators choose **Applies to: Per user / Per van** in the document editor. OR/CR and insurance start per van; other existing requirements remain per user.
+
+Shared documents are collected once for the operator account. Each van receives its own required document uploads, review results, and correction notes. Scope changes do not reassign old uploads: legacy vehicle files without a van association remain accessible in admin review but must be uploaded against the correct van to satisfy its checklist.
+
+Initial approval verifies the required shared documents and first van's documents and front photo, then approves the operator and publishes the first van atomically. Additional vans are reviewed separately; their documents use the vehicle's version for concurrent-review protection. Replacing a van document or requesting vehicle corrections removes only that van from publication and availability. The operator's approval and other vans remain intact.
+
+The security-invoker `operator_verification_queue` view includes pending van counts. The default admin review queue includes approved operators with additional vans awaiting verification. Private document/storage permissions still allow only the owning operator and administrators; no documents or plate numbers are added to the public catalog.

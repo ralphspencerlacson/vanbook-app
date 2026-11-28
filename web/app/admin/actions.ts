@@ -60,6 +60,9 @@ export async function saveRequirement(
   const description = String(form.get("description") ?? "").trim();
   const orderText = String(form.get("sort_order") ?? "0").trim();
   const sortOrder = Number(orderText);
+  const scope = String(form.get("scope") ?? "user");
+  if (!["user", "van"].includes(scope))
+    return { message: "Choose Per user or Per van." };
   if (!/^[a-z][a-z0-9_]{0,63}$/.test(code) || !label || label.length > 150)
     return {
       message:
@@ -94,6 +97,7 @@ export async function saveRequirement(
           label,
           description,
           sort_order: sortOrder,
+          scope,
           required: form.get("required") === "true",
           active: form.get("active") !== "false",
         },

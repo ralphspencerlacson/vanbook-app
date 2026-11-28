@@ -55,6 +55,9 @@ await db.exec(
 await db.exec(await readFile(new URL(
   "../../../supabase/migrations/20261128000100_account_profile.sql", import.meta.url,
 ), "utf8"));
+await db.exec(await readFile(new URL(
+  "../../../supabase/migrations/20261128000200_scoped_operator_documents.sql", import.meta.url,
+), "utf8"));
 export async function saveFixtureAuthUser(value) {
   await db.query(
     "insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb) on conflict(id) do update set email=excluded.email,email_confirmed_at=excluded.email_confirmed_at,raw_user_meta_data=excluded.raw_user_meta_data",
@@ -85,6 +88,7 @@ export async function seedDocumentChecklist() {
       sql.indexOf("commit;"),
     ),
   );
+  await db.exec("update public.operator_document_requirements set scope='van' where code in ('vehicle_or_cr','insurance')");
 }
 
 export async function seedUserDirectory() {
@@ -201,6 +205,7 @@ export async function setOperatorApproval(approved) {
     await db.query("select public.finalize_operator_registration($1)", [a.id]);
   }
   if (approved) {
+    await db.query("with van as (insert into public.operator_vehicles(operator_id,title,make,model,model_year,seats,location,plate_number) select $1,'First van','Toyota','Hiace',2025,12,'Manila','FIRST-123' where not exists(select 1 from public.operator_vehicles where operator_id=$1) returning id) insert into public.operator_vehicle_photos(vehicle_id,storage_path,position,file_name,content_type,size_bytes) select id,id::text||'/front.png','front','front.png','image/png',100 from van", [OPERATOR_ID]);
     a = (
       await db.query(
         "select id,version from public.operator_applications where owner_id=$1",
@@ -219,6 +224,7 @@ export async function setOperatorApproval(approved) {
 const tables = new Set([
   "users",
   "operator_applications",
+  "operator_verification_queue",
   "operator_documents",
   "operator_application_events",
   "operator_document_requirements",
@@ -338,12 +344,13 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
         if (name === "save_operator_vehicle")
           return (
             await tx.query(
-              "select public.save_operator_vehicle($1,$2,$3::jsonb,$4::jsonb) as value",
+              "select public.save_operator_vehicle($1,$2,$3::jsonb,$4::jsonb,$5::jsonb) as value",
               [
                 body.p_id,
                 body.p_version,
                 JSON.stringify(body.p_details),
                 JSON.stringify(body.p_photos),
+                JSON.stringify(body.p_documents ?? []),
               ],
             )
           ).rows[0].value;
@@ -412,6 +419,9 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
         if (["select", "order", "offset", "limit", "on_conflict"].includes(key))
           continue;
         if (key === "or") {
+          if (value === "(status.eq.submitted,and(status.eq.approved,pending_vehicle_count.gt.0))") {
+            clauses.push("(status='submitted' or (status='approved' and pending_vehicle_count>0))"); continue;
+          }
           const match = value.match(
             /^\(([a-z_]+)\.ilike\.("(?:\\.|[^"\\])*"),([a-z_]+)\.ilike\.("(?:\\.|[^"\\])*")\)$/,
           );

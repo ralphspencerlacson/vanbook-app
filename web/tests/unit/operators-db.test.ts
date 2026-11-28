@@ -266,6 +266,8 @@ describe("VANBOOK roles, registration and document permissions", () => {
         [IDS.operator],
       )
     ).rows[0];
+    await db.exec("reset role;");
+    await db.query("insert into public.operator_vehicle_photos(vehicle_id,storage_path,position,file_name,content_type,size_bytes) values($1,$2,'front','front.png','image/png',100)", [v.id, `${v.id}/front.png`]);
     await actor(db, IDS.root);
     await db.query("select public.set_vehicle_status($1,$2,'published')", [
       v.id,
@@ -273,7 +275,7 @@ describe("VANBOOK roles, registration and document permissions", () => {
     ]);
     await actor(db, IDS.customer);
     expect(
-      (await db.query("select title from public.vehicle_listings")).rows,
+      (await db.query("select title from public.vehicle_listings where title='Group Van'")).rows,
     ).toEqual([{ title: "Group Van" }]);
     await expect(
       db.query("select plate_number from public.operator_vehicles"),
@@ -291,7 +293,7 @@ describe("VANBOOK roles, registration and document permissions", () => {
     ).rows[0];
     expect(
       (await db.query("select * from public.get_managed_vehicles()")).rows,
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     await actor(db, IDS.customer);
     await expect(
       db.query("select public.set_vehicle_status($1,$2,'published')", [

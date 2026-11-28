@@ -8,6 +8,7 @@ import {
   draft,
   IDS,
   submit,
+  firstVan,
 } from "../fixtures/database";
 let db: PGlite;
 beforeAll(async () => {
@@ -244,6 +245,7 @@ it("prevents owners from self-approving documents", async () => {
 });
 it("requires admin approval of mandatory documents before business approval", async () => {
   const app = await draft(db);
+  await firstVan(db, app.id);
   const doc = await document(app.id);
   await db.query(
     "update public.operator_document_requirements set active=true,required=true where code='supporting_document'",

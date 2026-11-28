@@ -50,6 +50,13 @@ export type Database = {
             referencedRelation: "operator_applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "operator_application_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "operator_verification_queue"
+            referencedColumns: ["id"]
+          },
         ]
       }
       operator_applications: {
@@ -128,6 +135,7 @@ export type Database = {
           description: string
           label: string
           required: boolean
+          scope: string
           sort_order: number
         }
         Insert: {
@@ -136,6 +144,7 @@ export type Database = {
           description?: string
           label: string
           required?: boolean
+          scope?: string
           sort_order?: number
         }
         Update: {
@@ -144,6 +153,7 @@ export type Database = {
           description?: string
           label?: string
           required?: boolean
+          scope?: string
           sort_order?: number
         }
         Relationships: []
@@ -162,6 +172,7 @@ export type Database = {
           reviewed_by: string | null
           size_bytes: number
           storage_path: string
+          vehicle_id: string | null
         }
         Insert: {
           application_id: string
@@ -176,6 +187,7 @@ export type Database = {
           reviewed_by?: string | null
           size_bytes: number
           storage_path: string
+          vehicle_id?: string | null
         }
         Update: {
           application_id?: string
@@ -190,6 +202,7 @@ export type Database = {
           reviewed_by?: string | null
           size_bytes?: number
           storage_path?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -197,6 +210,27 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "operator_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "operator_verification_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_documents_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "operator_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operator_documents_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_listings"
             referencedColumns: ["id"]
           },
         ]
@@ -312,6 +346,13 @@ export type Database = {
             referencedRelation: "operator_applications"
             referencedColumns: ["owner_id"]
           },
+          {
+            foreignKeyName: "operator_vehicles_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operator_verification_queue"
+            referencedColumns: ["owner_id"]
+          },
         ]
       }
       users: {
@@ -346,6 +387,78 @@ export type Database = {
       }
     }
     Views: {
+      operator_verification_queue: {
+        Row: {
+          business_name: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string | null
+          notes: string | null
+          operating_base: string | null
+          operator_updated_at: string | null
+          owner_id: string | null
+          pending_vehicle_count: number | null
+          registration_number: string | null
+          resubmitted_at: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_areas: string[] | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          business_name?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string | null
+          notes?: string | null
+          operating_base?: string | null
+          operator_updated_at?: string | null
+          owner_id?: string | null
+          pending_vehicle_count?: never
+          registration_number?: string | null
+          resubmitted_at?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_areas?: string[] | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          business_name?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string | null
+          notes?: string | null
+          operating_base?: string | null
+          operator_updated_at?: string | null
+          owner_id?: string | null
+          pending_vehicle_count?: never
+          registration_number?: string | null
+          resubmitted_at?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_areas?: string[] | null
+          status?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
       vehicle_listings: {
         Row: {
           description: string | null
@@ -522,6 +635,7 @@ export type Database = {
       save_operator_vehicle: {
         Args: {
           p_details: Json
+          p_documents?: Json
           p_id: string
           p_photos?: Json
           p_version: number

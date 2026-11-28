@@ -131,7 +131,7 @@ test("operator registration, document correction, admin update tracking and vehi
     "business_permit",
   ])
     await page
-      .locator(`input[name="document:${code}"]`)
+      .locator(`input[name="document:${["vehicle_or_cr", "insurance"].includes(code) ? "0:" : ""}${code}"]`)
       .setInputFiles(pdf(`${code}.pdf`));
   const fleet = page.locator(".operator-registration-vehicle").first();
   for (const [label, value] of Object.entries({
@@ -160,7 +160,7 @@ test("operator registration, document correction, admin update tracking and vehi
     animations: "disabled",
   });
   await page
-    .locator('input[name="document:insurance"]')
+    .locator('input[name="document:0:insurance"]')
     .setInputFiles({
       name: "invalid.pdf",
       mimeType: "application/pdf",
@@ -173,7 +173,7 @@ test("operator registration, document correction, admin update tracking and vehi
     page.getByRole("alert").filter({ hasText: "does not match its format" }),
   ).toBeVisible();
   await page
-    .locator('input[name="document:insurance"]')
+    .locator('input[name="document:0:insurance"]')
     .setInputFiles(pdf("insurance.pdf"));
   await page
     .getByRole("button", { name: "Submit application", exact: true })
@@ -213,19 +213,19 @@ test("operator registration, document correction, admin update tracking and vehi
   await login(admin, "admin@example.test");
   await expect(admin).toHaveURL(/\/admin$/);
   await admin.goto(`/admin?status=all&operator=${applicationId}`);
-  const insurance = admin
+  const license = admin
     .locator(".admin-document-row")
-    .filter({ hasText: "Insurance (CTPL + passenger)" });
-  await insurance
-    .getByText("Review Insurance (CTPL + passenger)", { exact: true })
+    .filter({ hasText: "Driver's professional license" });
+  await license
+    .getByText("Review Driver's professional license", { exact: true })
     .click();
-  await insurance
-    .getByLabel("Review note for Insurance (CTPL + passenger)")
-    .fill("Please upload a current insurance certificate.");
-  await insurance
+  await license
+    .getByLabel("Review note for Driver's professional license")
+    .fill("Please upload a current professional license.");
+  await license
     .getByRole("button", { name: "Request replacement", exact: true })
     .click();
-  await expect(insurance.locator(".admin-document-status")).toHaveText(
+  await expect(license.locator(".admin-document-status")).toHaveText(
     "Resubmit",
   );
   await page.reload();
@@ -239,8 +239,8 @@ test("operator registration, document correction, admin update tracking and vehi
     .getByLabel("Registered business name", { exact: true })
     .fill("Lakbay Updated Travel");
   await page
-    .getByLabel("Insurance (CTPL + passenger) (required)", { exact: true })
-    .setInputFiles(pdf("updated-insurance.pdf"));
+    .getByLabel("Driver's professional license (required)", { exact: true })
+    .setInputFiles(pdf("updated-license.pdf"));
   await page
     .getByRole("button", { name: "Save and resubmit application", exact: true })
     .click();
@@ -272,11 +272,8 @@ test("operator registration, document correction, admin update tracking and vehi
       .click();
     await expect(row.locator(".admin-document-status")).toHaveText("Approved");
   }
-  await admin.getByRole("button", { name: "Approve", exact: true }).click();
+  await admin.getByRole("button", { name: "Approve operator and first van", exact: true }).click();
   await expect(admin.locator(".admin-review-result")).toContainText("Approved");
-  await admin
-    .getByRole("button", { name: "Approve vehicle", exact: true })
-    .click();
   await expect(
     admin.locator(".admin-vehicle-review article").first(),
   ).toContainText("Approved");
@@ -312,6 +309,9 @@ test("operator registration, document correction, admin update tracking and vehi
   }))
     await drawer.getByLabel(label, { exact: true }).fill(value);
   await drawer.getByLabel("front photo", { exact: true }).setInputFiles(photo);
+  await drawer.getByLabel("Vehicle OR/CR (required)", { exact: true }).setInputFiles(pdf("second-or-cr.pdf"));
+  await drawer.getByLabel("Insurance (CTPL + passenger) (required)", { exact: true }).setInputFiles(pdf("second-insurance.pdf"));
+  await expect(drawer.getByLabel("Driver's professional license (required)")).toHaveCount(0);
   await drawer
     .getByRole("button", { name: "Save vehicle", exact: true })
     .click();
@@ -319,6 +319,24 @@ test("operator registration, document correction, admin update tracking and vehi
   const second = page.getByRole("row").filter({ hasText: "Nissan Urvan" });
   await expect(second).toBeVisible();
   await expect(second.getByRole("switch")).toBeDisabled();
+  await admin.goto("/admin");
+  await expect(admin.getByText("Additional van review", { exact: true })).toBeVisible();
+  await expect(admin.getByText("Additional van verification", { exact: true })).toBeVisible();
+  const secondReview = admin.locator(".admin-vehicle-review article").filter({ hasText: "DEF 5678" });
+  await expect(secondReview.getByRole("heading", { name: "Van 2 · Nissan Urvan" })).toBeVisible();
+  for (const label of ["Vehicle OR/CR", "Insurance (CTPL + passenger)"]) {
+    const document = secondReview.locator(".admin-document-row").filter({ hasText: label });
+    await document.getByText(`Review ${label}`, { exact: true }).click();
+    await document.getByRole("button", { name: "Approve document", exact: true }).click();
+    await expect(document.locator(".admin-document-status")).toHaveText("Approved");
+  }
+  await secondReview.getByRole("button", { name: "Approve vehicle", exact: true }).click();
+  await expect(admin.getByText("Additional van review", { exact: true })).toHaveCount(0);
+  await admin.goto(`/admin?status=all&operator=${applicationId}`);
+  await expect(secondReview).toContainText("Verification complete");
+  await page.reload();
+  await expect(second).toContainText("Approved");
+  await expect(second.getByRole("switch")).toBeEnabled();
   await page.screenshot({
     path: "test-results/operator-vans-desktop.png",
     fullPage: true,

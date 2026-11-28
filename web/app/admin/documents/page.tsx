@@ -22,7 +22,7 @@ async function RequirementsContent() {
   return (
     <WorkspaceShell
       title="Documents"
-      description="Set the supporting documents needed for operator business review."
+      description="Set shared user documents and the documents needed to verify each van."
       admin
       superAdmin={actor.isSuperAdmin}
     >

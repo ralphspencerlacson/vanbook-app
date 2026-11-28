@@ -282,3 +282,11 @@ Setup reference: [Supabase SSR client guide](https://supabase.com/docs/guides/au
 Also see [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls),
 [Email templates](https://supabase.com/docs/guides/auth/auth-email-templates), and
 [SMTP restrictions](https://supabase.com/docs/guides/auth/auth-smtp).
+
+## Scoped operator documents
+
+Administrators set each document requirement to **Per user** or **Per van**. Registration collects shared user documents once and vehicle documents inside each van's section. **My vans → Add/Edit vehicle** collects only the van's documents; **Edit application** replaces shared documents. The Documents tab and admin review group files by their owner or van.
+
+Initial approval publishes the operator's first van together with approving the operator. Later vans appear in the admin waiting queue as **Additional van review** and remain hidden until individually verified. Corrections to an additional van do not reopen the operator application.
+
+Apply the scoped-document migration described in `../supabase/README.md` before running this version against an existing database. Database tests cover scope validation, required uploads per vehicle, initial approval, additional-van corrections, upload replacement, concurrency, and cross-operator access. The operator journey browser test covers registration through second-van approval.

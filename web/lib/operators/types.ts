@@ -42,6 +42,7 @@ export type OperatorApplication = ApplicationDraft & {
 export type ApplicationDocument = {
   id: string;
   application_id: string;
+  vehicle_id: string | null;
   storage_path: string;
   category: string;
   file_name: string;
@@ -63,6 +64,7 @@ export type ApplicationEvent = {
   created_at: string;
 };
 export type DocumentRequirement = {
+  scope: "user" | "van";
   code: string;
   label: string;
   description: string;

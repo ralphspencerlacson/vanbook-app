@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import type { OperatorVehicle } from "./vehicles";
 import { requireWorkspace } from "./server";
 import type {
   OperatorApplication,
@@ -28,7 +29,7 @@ export const getOperator = cache(async () => {
 });
 export async function getOperatorDocuments() {
   const actor = await getOperator();
-  const [documents, requirements] = await Promise.all([
+  const [documents, requirements, vehicles] = await Promise.all([
     actor.supabase
       .from("operator_documents")
       .select()
@@ -40,11 +41,13 @@ export async function getOperatorDocuments() {
       .eq("active", true)
       .order("sort_order")
       .order("label"),
+    actor.supabase.rpc("get_managed_vehicles"),
   ]);
-  if (documents.error || requirements.error)
+  if (documents.error || requirements.error || vehicles.error)
     throw new Error("Unable to load your document checklist.");
   return {
     ...actor,
+    vehicles: vehicles.data as OperatorVehicle[],
     documents: documents.data as ApplicationDocument[],
     requirements: requirements.data as DocumentRequirement[],
   };

@@ -32,7 +32,8 @@ export async function registerOperator(
     };
   if (form.get("agreement") !== "on" || form.get("declaration") !== "on")
     return { message: "Accept both operator agreements before submitting." };
-  let fleet, files;
+  let fleet;
+  let files: ReturnType<typeof readUploads>;
   try {
     const keys: unknown = JSON.parse(String(form.get("vehicle_keys") ?? "[]"));
     if (
@@ -52,8 +53,17 @@ export async function registerOperator(
     for (const vehicle of fleet)
       if (!files.some(([key]) => key === `photo:${vehicle.key}:front`))
         throw new Error("Upload a front photo for each vehicle.");
-    if (files.filter(([key]) => key.startsWith("document:")).length > 12)
-      throw new Error("Upload up to 12 supporting documents.");
+    if (
+      files.filter(
+        ([key]) => key.startsWith("document:") && key.split(":").length === 2,
+      ).length > 12 ||
+      fleet.some(
+        (vehicle) =>
+          files.filter(([key]) => key.startsWith(`document:${vehicle.key}:`))
+            .length > 12,
+      )
+    )
+      throw new Error("Upload up to 12 documents per user or van.");
   } catch (error) {
     return {
       message:
@@ -78,7 +88,11 @@ export async function registerOperator(
   if (requirements.error)
     return { message: "Operator registration is temporarily unavailable." };
   const allowed = new Set([
-    ...requirements.data.map((item) => `document:${item.code}`),
+    ...requirements.data.flatMap((item) =>
+      item.scope === "van"
+        ? fleet.map((vehicle) => `document:${vehicle.key}:${item.code}`)
+        : [`document:${item.code}`],
+    ),
     ...fleet.flatMap((vehicle) =>
       photoPositions.map((position) => `photo:${vehicle.key}:${position}`),
     ),
@@ -88,12 +102,16 @@ export async function registerOperator(
       message:
         "The document checklist changed. Refresh the page and try again.",
     };
-  for (const item of requirements.data)
-    if (
-      item.required &&
-      !files.some(([key]) => key === `document:${item.code}`)
-    )
-      return { message: `Upload ${item.label} before submitting.` };
+  for (const item of requirements.data.filter((item) => item.required)) {
+    const keys =
+      item.scope === "van"
+        ? fleet.map((vehicle) => `document:${vehicle.key}:${item.code}`)
+        : [`document:${item.code}`];
+    if (keys.some((name) => !files.some(([key]) => key === name)))
+      return {
+        message: `Upload ${item.label}${item.scope === "van" ? " for each van" : ""} before submitting.`,
+      };
+  }
   const requestHeaders = await headers();
   const ip =
     requestHeaders.get("x-vercel-forwarded-for") ??
@@ -131,8 +149,8 @@ export async function registerOperator(
       .single();
     if (app.error) throw new Error("application");
     applicationId = app.data.id;
-    for (const [key, file] of files.filter(([key]) =>
-      key.startsWith("document:"),
+    for (const [key, file] of files.filter(
+      ([key]) => key.startsWith("document:") && key.split(":").length === 2,
     )) {
       const uploaded = await uploadOperatorFile(
         admin,
@@ -141,13 +159,11 @@ export async function registerOperator(
         file,
       );
       paths.push(uploaded.storage_path);
-      const saved = await admin
-        .from("operator_documents")
-        .insert({
-          application_id: applicationId,
-          category: key.slice(9),
-          ...uploaded,
-        });
+      const saved = await admin.from("operator_documents").insert({
+        application_id: applicationId,
+        category: key.slice(9),
+        ...uploaded,
+      });
       if (saved.error) throw new Error("document");
     }
     for (const vehicle of fleet) {
@@ -157,6 +173,28 @@ export async function registerOperator(
         .select("id")
         .single();
       if (record.error) throw new Error("vehicle");
+      for (const item of requirements.data.filter(
+        (item) => item.scope === "van",
+      )) {
+        const file = files.find(
+          ([key]) => key === `document:${vehicle.key}:${item.code}`,
+        )?.[1];
+        if (!file) continue;
+        const uploaded = await uploadOperatorFile(
+          admin,
+          owner,
+          applicationId,
+          file,
+        );
+        paths.push(uploaded.storage_path);
+        const saved = await admin.from("operator_documents").insert({
+          application_id: applicationId,
+          vehicle_id: record.data.id,
+          category: item.code,
+          ...uploaded,
+        });
+        if (saved.error) throw new Error("vehicle document");
+      }
       for (const position of photoPositions) {
         const file = files.find(
           ([key]) => key === `photo:${vehicle.key}:${position}`,

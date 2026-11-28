@@ -37,6 +37,7 @@ export async function createSchema(db: PGlite) {
     await db.exec(await migration("20261127000200_document_checklist.sql"));
     await db.exec(await migration("20261127000300_operator_portal.sql"));
     await db.exec(await migration("20261128000100_account_profile.sql"));
+    await db.exec(await migration("20261128000200_scoped_operator_documents.sql"));
   } catch (error) {
     await db.exec("rollback;");
     throw error;
@@ -90,10 +91,19 @@ export async function submit(db: PGlite, id: string) {
   ).rows[0];
 }
 export async function approve(db: PGlite, id: string) {
+  await firstVan(db, id);
   const a = await submit(db, id);
   await actor(db, IDS.root);
   await db.query(
     "select public.review_operator_application($1,$2,'approved','Reviewed')",
     [id, a.version],
   );
+}
+export async function firstVan(db: PGlite, application: string) {
+  await db.exec("reset role;");
+  const van = (await db.query<{ id: string }>(
+    "insert into public.operator_vehicles(operator_id,title,make,model,model_year,seats,location,plate_number) select owner_id,'Onboarding van','Toyota','Hiace',2025,12,'Manila','FIRST-123' from public.operator_applications where id=$1 returning id", [application],
+  )).rows[0];
+  await db.query("insert into public.operator_vehicle_photos(vehicle_id,storage_path,position,file_name,content_type,size_bytes) values($1,$2,'front','front.png','image/png',100)", [van.id, `${van.id}/front.png`]);
+  return van.id;
 }

@@ -23,6 +23,7 @@ async function Content() {
       <OperatorDocumentStatus
         documents={actor.documents}
         requirements={actor.requirements}
+        vehicles={actor.vehicles}
       />
     </OperatorWorkspace>
   );

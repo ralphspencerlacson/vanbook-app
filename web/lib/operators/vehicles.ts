@@ -25,6 +25,7 @@ export type OperatorVehicle = VehicleDraft & {
   version: number;
   available_for_requests: boolean;
   updated_at: string;
+  created_at: string;
 };
 export type VehiclePhoto = {
   id: string;

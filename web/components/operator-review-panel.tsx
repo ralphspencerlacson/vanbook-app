@@ -1,8 +1,5 @@
-import Link from "next/link";
-import {
-  DocumentReviewControls,
-  VehicleReviewControls,
-} from "./document-review-controls";
+import { VehicleReviewControls } from "./document-review-controls";
+import { AdminDocumentChecklist } from "./admin-document-checklist";
 import type { OperatorVehicle, VehiclePhoto } from "@/lib/operators/vehicles";
 import { ReviewApplicationForm } from "./review-application-form";
 import { StatusBadge } from "./workspace-shell";
@@ -31,24 +28,6 @@ export function OperatorReviewPanel({
   vehicles?: OperatorVehicle[];
   photos?: VehiclePhoto[];
 }) {
-  const categories = [
-    ...requirements.map((r) => ({
-      code: r.code,
-      label: r.label,
-      required: r.required,
-    })),
-    ...Array.from(
-      new Set(
-        documents
-          .filter((d) => !requirements.some((r) => r.code === d.category))
-          .map((d) => d.category),
-      ),
-    ).map((code) => ({
-      code,
-      label: code.replaceAll("_", " "),
-      required: false,
-    })),
-  ];
   return (
     <section
       className="admin-review-panel"
@@ -71,99 +50,93 @@ export function OperatorReviewPanel({
         </div>
         <StatusBadge status={app.status} />
       </header>
-      <div className="admin-document-checklist">
-        {app.operator_updated_at && (
-          <p className="admin-operator-update">
-            <strong>Updated by operator</strong> ·{" "}
-            {displayDate(app.operator_updated_at)}
-            {app.resubmitted_at && (
-              <> · Resubmitted {displayDate(app.resubmitted_at)}</>
-            )}
+      <p className="operator-muted">
+        <strong>
+          {app.status === "approved"
+            ? vehicles
+                .slice(1)
+                .some((vehicle) => vehicle.status !== "published")
+              ? "Additional van verification"
+              : vehicles.some((vehicle) => vehicle.status !== "published")
+                ? "Van verification"
+                : "Operator verification complete"
+            : "Initial operator and first-van verification"}
+        </strong>
+      </p>
+      {app.operator_updated_at && (
+        <p className="admin-operator-update">
+          Updated by operator · {displayDate(app.operator_updated_at)}
+          {app.resubmitted_at && (
+            <> · Resubmitted {displayDate(app.resubmitted_at)}</>
+          )}
+        </p>
+      )}
+      <h3>Shared user documents</h3>
+      {app.status === "approved" && (
+        <p className="operator-muted">
+          The operator is already approved. Shared user documents remain on
+          file; each additional van needs its own verification.
+        </p>
+      )}
+      <AdminDocumentChecklist
+        documents={documents.filter(
+          (document) =>
+            !document.vehicle_id &&
+            !requirements.some(
+              (item) => item.code === document.category && item.scope === "van",
+            ),
+        )}
+        requirements={requirements.filter((item) => item.scope !== "van")}
+        version={app.version}
+      />
+      {documents.some(
+        (document) =>
+          !document.vehicle_id &&
+          requirements.some(
+            (item) => item.code === document.category && item.scope === "van",
+          ),
+      ) && (
+        <details>
+          <summary>Earlier uploads without a van association</summary>
+          <p>
+            These files do not satisfy an individual van’s checklist. Ask the
+            operator to upload them for the correct van.
           </p>
-        )}
-        <h3 className="sr-only">Supporting documents</h3>
-        {categories.length ? (
-          categories.map((category) => {
-            const files = documents.filter((d) => d.category === category.code);
-            return (
-              <div className="admin-document-row" key={category.code}>
-                <div>
-                  <strong>{category.label}</strong>
-                  {files[0]?.review_note && (
-                    <p className="operator-review-note">
-                      {files[0].review_note}
-                    </p>
-                  )}
-                  {files[0] && (
-                    <DocumentReviewControls
-                      key={`${files[0].id}-${app.version}`}
-                      id={files[0].id}
-                      version={app.version}
-                      label={category.label}
-                      note={files[0].review_note ?? ""}
-                    />
-                  )}
-                  {files.length > 1 && (
-                    <span className="admin-document-count">
-                      {files.length} files
-                    </span>
-                  )}
-                  {files.length > 1 && (
-                    <div className="admin-extra-files">
-                      {files.slice(1).map((file) => (
-                        <a
-                          key={file.id}
-                          href={`/documents/${file.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {file.file_name} ↗
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <span
-                  className={`admin-document-status ${files.length ? "is-uploaded" : category.required ? "is-missing" : "is-optional"}`}
+          {documents
+            .filter(
+              (document) =>
+                !document.vehicle_id &&
+                requirements.some(
+                  (item) =>
+                    item.code === document.category && item.scope === "van",
+                ),
+            )
+            .map((document) => (
+              <p key={document.id}>
+                <a
+                  href={`/documents/${document.id}`}
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  {files.length
-                    ? files[0].review_status === "approved"
-                      ? "Approved"
-                      : files[0].review_status === "changes_requested"
-                        ? "Resubmit"
-                        : "Pending review"
-                    : category.required
-                      ? "Missing"
-                      : "Optional"}
-                </span>
-                {files.length ? (
-                  <a
-                    className="admin-document-view"
-                    href={`/documents/${files[0].id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`View ${category.label}`}
-                  >
-                    View
-                  </a>
-                ) : (
-                  <span className="admin-document-unavailable">—</span>
-                )}
-              </div>
-            );
-          })
-        ) : (
-          <div className="admin-inline-empty">
-            No supporting documents have been provided.{" "}
-            <Link href="/admin/documents">Manage the checklist</Link>
-          </div>
-        )}
-      </div>
+                  {document.file_name}
+                </a>
+              </p>
+            ))}
+        </details>
+      )}
       <section className="admin-vehicle-review">
         <h3>Registered vehicles ({vehicles.length})</h3>
-        {vehicles.map((vehicle) => (
+        {vehicles.map((vehicle, index) => (
           <article key={vehicle.id}>
-            <strong>{vehicle.title}</strong>
+            <h4>
+              Van {index + 1} · {vehicle.title}
+            </h4>
+            <p>
+              {index === 0 ? "First van" : "Additional van"} ·{" "}
+              {vehicle.status === "published"
+                ? "Verification complete"
+                : "Verification required — hidden from listings"}
+            </p>
             <p>
               {vehicle.plate_number} · {vehicle.model_year} · {vehicle.seats}{" "}
               seats · {vehicle.location}
@@ -189,13 +162,23 @@ export function OperatorReviewPanel({
                   </a>
                 ))}
             </div>
+            <AdminDocumentChecklist
+              documents={documents.filter(
+                (document) => document.vehicle_id === vehicle.id,
+              )}
+              requirements={requirements.filter((item) => item.scope === "van")}
+              version={vehicle.version}
+            />
             {app.status === "approved" ? (
               <VehicleReviewControls
                 id={vehicle.id}
                 version={vehicle.version}
               />
             ) : (
-              <p>Approve the operator before publishing this vehicle.</p>
+              <p>
+                Review this van’s documents and photos. Initial approval
+                publishes the first van together with the operator.
+              </p>
             )}
           </article>
         ))}

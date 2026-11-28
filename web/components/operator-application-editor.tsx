@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { resubmitApplication } from "@/app/operator/actions";
@@ -107,50 +108,57 @@ export function OperatorApplicationEditor({
         </label>
       </section>
       <section className="operator-panel">
-        <h2>Document replacements</h2>
+        <h2>Shared document replacements</h2>
+        <p className="operator-muted">
+          For vehicle documents and corrections,{" "}
+          <Link href="/operator/vans">open My vans</Link>.
+        </p>
         <p className="operator-muted">
           Leave a file empty to keep the current version. Replacement files
           return to pending review.
         </p>
-        {requirements.map((item) => {
-          const file = documents.find(
-            (document) => document.category === item.code,
-          );
-          return (
-            <div className="operator-replace-document" key={item.code}>
-              <label htmlFor={`replace:${item.code}`}>
-                {item.label} {item.required ? "(required)" : "(optional)"}
-              </label>
-              {file && (
-                <p className="operator-muted">
-                  Current: {file.file_name} ·{" "}
-                  {file.review_status === "changes_requested"
-                    ? "Resubmit requested"
-                    : file.review_status === "approved"
-                      ? "Approved"
-                      : "Pending review"}
-                </p>
-              )}
-              {file?.review_note && (
-                <p className="operator-review-note">{file.review_note}</p>
-              )}
-              {item.description && (
-                <p className="operator-muted">{item.description}</p>
-              )}
-              <input
-                id={`replace:${item.code}`}
-                name={`document:${item.code}`}
-                type="file"
-                accept="application/pdf,image/png,image/jpeg"
-                required={
-                  (item.required && !file) ||
-                  file?.review_status === "changes_requested"
-                }
-                disabled={pending}
-              />
-            </div>
-          );
-        })}
+        {requirements
+          .filter((item) => item.scope !== "van")
+          .map((item) => {
+            const file = documents.find(
+              (document) =>
+                !document.vehicle_id && document.category === item.code,
+            );
+            return (
+              <div className="operator-replace-document" key={item.code}>
+                <label htmlFor={`replace:${item.code}`}>
+                  {item.label} {item.required ? "(required)" : "(optional)"}
+                </label>
+                {file && (
+                  <p className="operator-muted">
+                    Current: {file.file_name} ·{" "}
+                    {file.review_status === "changes_requested"
+                      ? "Resubmit requested"
+                      : file.review_status === "approved"
+                        ? "Approved"
+                        : "Pending review"}
+                  </p>
+                )}
+                {file?.review_note && (
+                  <p className="operator-review-note">{file.review_note}</p>
+                )}
+                {item.description && (
+                  <p className="operator-muted">{item.description}</p>
+                )}
+                <input
+                  id={`replace:${item.code}`}
+                  name={`document:${item.code}`}
+                  type="file"
+                  accept="application/pdf,image/png,image/jpeg"
+                  required={
+                    (item.required && !file) ||
+                    file?.review_status === "changes_requested"
+                  }
+                  disabled={pending}
+                />
+              </div>
+            );
+          })}
         <p className="operator-muted">
           Replacement documents together must be 3 MB or less.
         </p>
