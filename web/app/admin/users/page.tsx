@@ -8,6 +8,9 @@ import {
 } from "@/components/workspace-shell";
 import { AdminShell } from "@/components/admin-shell";
 import { AdminUsersForm } from "@/components/admin-users-form";
+import { DashboardFilters } from "@/components/dashboard-filters";
+import { TableSortHeader } from "@/components/table-sort-header";
+import { nextTableSort } from "@/lib/table-sort";
 import type { AccountAccess } from "@/lib/auth/access";
 
 const roles: AccountAccess["role"][] = [
@@ -32,6 +35,32 @@ type UserRow = {
   email_confirmed_at: string | null;
   created_at: string;
 };
+const sortOptions = {
+  newest: {
+    column: "created_at",
+    ascending: false,
+    label: "Joined: newest first",
+  },
+  oldest: {
+    column: "created_at",
+    ascending: true,
+    label: "Joined: oldest first",
+  },
+  name: { column: "full_name", ascending: true, label: "User: A–Z" },
+  name_desc: { column: "full_name", ascending: false, label: "User: Z–A" },
+  role: { column: "role", ascending: true, label: "Role: A–Z" },
+  role_desc: { column: "role", ascending: false, label: "Role: Z–A" },
+  verified: {
+    column: "email_confirmed_at",
+    ascending: true,
+    label: "Email: verified first",
+  },
+  unverified: {
+    column: "email_confirmed_at",
+    ascending: true,
+    label: "Email: not verified first",
+  },
+} as const;
 const date = new Intl.DateTimeFormat("en-PH", {
   month: "short",
   day: "numeric",
@@ -54,7 +83,9 @@ async function Users({ searchParams }: PageProps<"/admin/users">) {
       ? params.verification
       : "all";
   const sort =
-    params.sort === "oldest" || params.sort === "name" ? params.sort : "newest";
+    typeof params.sort === "string" && Object.hasOwn(sortOptions, params.sort)
+      ? (params.sort as keyof typeof sortOptions)
+      : "newest";
   const search =
     typeof params.search === "string" ? params.search.trim().slice(0, 100) : "";
   const page = Math.max(
@@ -66,10 +97,13 @@ async function Users({ searchParams }: PageProps<"/admin/users">) {
     .select("id,email,full_name,role,email_confirmed_at,created_at", {
       count: "exact",
     });
-  query =
-    sort === "name"
-      ? query.order("full_name").order("email")
-      : query.order("created_at", { ascending: sort === "oldest" });
+  const ordering = sortOptions[sort];
+  query = query.order(ordering.column, {
+    ascending: ordering.ascending,
+    nullsFirst: sort === "unverified",
+  });
+  if (sort === "name" || sort === "name_desc")
+    query = query.order("email", { ascending: sort === "name" });
   query = query.order("id").range((page - 1) * 25, page * 25 - 1);
   if (role !== "all") query = query.eq("role", role);
   if (verification === "verified")
@@ -100,15 +134,20 @@ async function Users({ searchParams }: PageProps<"/admin/users">) {
     throw new Error("Unable to load user accounts.");
   const rows = result.data as UserRow[];
   const count = result.count ?? 0;
-  const href = (next: number) =>
+  const href = (next: number, nextSort = sort) =>
     "/admin/users?" +
     new URLSearchParams({
       role,
       search,
       verification,
-      sort,
+      sort: nextSort,
       page: String(next),
     });
+  const activeFilters = [
+    role !== "all",
+    !!search,
+    verification !== "all",
+  ].filter(Boolean).length;
   const filtered =
     role !== "all" || search || verification !== "all" || sort !== "newest";
   return (
@@ -144,64 +183,71 @@ async function Users({ searchParams }: PageProps<"/admin/users">) {
             {count} {count === 1 ? "account" : "accounts"}
           </span>
         </header>
-        <form
-          className="users-filters"
-          action="/admin/users"
-          key={`${role}:${search}:${verification}:${sort}`}
+        <DashboardFilters
+          activeCount={activeFilters}
+          defaultOpen={activeFilters > 0}
         >
-          <label className="users-search">
-            <span className="filter-control-label">Search users</span>
-            <input
-              type="search"
-              aria-label="Search users"
-              name="search"
-              maxLength={100}
-              placeholder="Name or email address…"
-              defaultValue={search}
-            />
-          </label>
-          <label>
-            <span className="filter-control-label">Account role</span>
-            <select name="role" aria-label="Account role" defaultValue={role}>
-              <option value="all">All roles</option>
-              {roles.map((value) => (
-                <option value={value} key={value}>
-                  {roleLabels[value]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="filter-control-label">Email status</span>
-            <select
-              name="verification"
-              aria-label="Email status"
-              defaultValue={verification}
-            >
-              <option value="all">All email statuses</option>
-              <option value="verified">Verified</option>
-              <option value="unverified">Not verified</option>
-            </select>
-          </label>
-          <label>
-            <span className="filter-control-label">Sort users</span>
-            <select name="sort" aria-label="Sort users" defaultValue={sort}>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="name">Name: A–Z</option>
-            </select>
-          </label>
-          <div className="users-filter-actions">
-            <button type="submit" className="requirements-button">
-              Apply filters
-            </button>
-            {filtered && (
-              <Link href="/admin/users" className="filter-clear-button">
-                Clear filters
-              </Link>
-            )}
-          </div>
-        </form>
+          <form
+            className="users-filters"
+            action="/admin/users"
+            key={`${role}:${search}:${verification}:${sort}`}
+          >
+            <label className="users-search">
+              <span className="filter-control-label">Search users</span>
+              <input
+                type="search"
+                aria-label="Search users"
+                name="search"
+                maxLength={100}
+                placeholder="Name or email address…"
+                defaultValue={search}
+              />
+            </label>
+            <label>
+              <span className="filter-control-label">Account role</span>
+              <select name="role" aria-label="Account role" defaultValue={role}>
+                <option value="all">All roles</option>
+                {roles.map((value) => (
+                  <option value={value} key={value}>
+                    {roleLabels[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="filter-control-label">Email status</span>
+              <select
+                name="verification"
+                aria-label="Email status"
+                defaultValue={verification}
+              >
+                <option value="all">All email statuses</option>
+                <option value="verified">Verified</option>
+                <option value="unverified">Not verified</option>
+              </select>
+            </label>
+            <label>
+              <span className="filter-control-label">Sort users</span>
+              <select name="sort" aria-label="Sort users" defaultValue={sort}>
+                {Object.entries(sortOptions).map(([value, option]) => (
+                  <option key={value} value={value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="users-filter-actions">
+              <button type="submit" className="requirements-button">
+                Apply filters
+              </button>
+              {filtered && (
+                <Link href="/admin/users" className="filter-clear-button">
+                  Clear filters
+                </Link>
+              )}
+            </div>
+          </form>
+        </DashboardFilters>
         <div className="users-table-wrap">
           <table className="users-table">
             <caption className="sr-only">
@@ -210,10 +256,34 @@ async function Users({ searchParams }: PageProps<"/admin/users">) {
             </caption>
             <thead>
               <tr>
-                <th scope="col">User</th>
-                <th scope="col">Role</th>
-                <th scope="col">Email status</th>
-                <th scope="col">Joined</th>
+                {[
+                  { label: "User", ascending: "name", descending: "name_desc" },
+                  { label: "Role", ascending: "role", descending: "role_desc" },
+                  {
+                    label: "Email status",
+                    ascending: "verified",
+                    descending: "unverified",
+                  },
+                  {
+                    label: "Joined",
+                    ascending: "oldest",
+                    descending: "newest",
+                  },
+                ].map((column) => (
+                  <TableSortHeader
+                    key={column.label}
+                    {...column}
+                    sort={sort}
+                    href={href(
+                      1,
+                      nextTableSort(
+                        sort,
+                        column.ascending,
+                        column.descending,
+                      ) as keyof typeof sortOptions,
+                    )}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody>

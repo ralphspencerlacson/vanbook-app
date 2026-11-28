@@ -304,11 +304,12 @@ test("operator registration, document correction, admin update tracking and vehi
     Model: "Urvan",
     "Plate number": "DEF 5678",
     Year: "2023",
-    "Registered seats": "15",
+    "Registered seats": "12",
     "Operating location": "Manila",
   }))
     await drawer.getByLabel(label, { exact: true }).fill(value);
   await drawer.getByLabel("front photo", { exact: true }).setInputFiles(photo);
+  await drawer.getByLabel("side photo", { exact: true }).setInputFiles(photo);
   await drawer.getByLabel("Vehicle OR/CR (required)", { exact: true }).setInputFiles(pdf("second-or-cr.pdf"));
   await drawer.getByLabel("Insurance (CTPL + passenger) (required)", { exact: true }).setInputFiles(pdf("second-insurance.pdf"));
   await expect(drawer.getByLabel("Driver's professional license (required)")).toHaveCount(0);
@@ -319,6 +320,29 @@ test("operator registration, document correction, admin update tracking and vehi
   const second = page.getByRole("row").filter({ hasText: "Nissan Urvan" });
   await expect(second).toBeVisible();
   await expect(second.getByRole("switch")).toBeDisabled();
+  const vanHeader = page.getByRole("columnheader", { name: "Van", exact: true });
+  await vanHeader.getByRole("button").click();
+  await expect(page.locator(".operator-van-table tbody tr").first()).toContainText("Nissan Urvan");
+  await vanHeader.getByRole("button").click();
+  await expect(page.locator(".operator-van-table tbody tr").first()).toContainText("Toyota Hiace");
+  for (const [column, ascendingFirst, descendingFirst] of [["Seats", "Nissan Urvan", "Toyota Hiace"], ["Photos", "Toyota Hiace", "Nissan Urvan"], ["Status", "Toyota Hiace", "Nissan Urvan"], ["Available for requests", "Toyota Hiace", "Nissan Urvan"]]) {
+    const header = page.getByRole("columnheader", { name: column, exact: true });
+    await header.getByRole("button").click();
+    await expect(page.locator(".operator-van-table tbody tr").first()).toContainText(ascendingFirst);
+    await header.getByRole("button").click();
+    await expect(page.locator(".operator-van-table tbody tr").first()).toContainText(descendingFirst);
+  }
+  const filters = page.getByRole("button", { name: /^Filters/ });
+  await filters.click();
+  await page.getByLabel("Filter vans by status").selectOption("pending");
+  await expect(page.locator(".operator-van-table tbody tr")).toHaveCount(1);
+  await expect(page.locator(".operator-van-table tbody tr")).toContainText("Nissan Urvan");
+  await filters.click();
+  await expect(page.getByLabel("Filter vans by status")).not.toBeVisible();
+  await expect(page.locator(".operator-van-table tbody tr")).toHaveCount(1);
+  await filters.click();
+  await page.getByRole("button", { name: "Clear filters", exact: true }).click();
+  await filters.click();
   await admin.goto("/admin");
   await expect(admin.getByText("Additional van review", { exact: true })).toBeVisible();
   await expect(admin.getByText("Additional van verification", { exact: true })).toBeVisible();

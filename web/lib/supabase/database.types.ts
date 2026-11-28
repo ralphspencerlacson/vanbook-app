@@ -409,6 +409,7 @@ export type Database = {
           status: string | null
           submitted_at: string | null
           updated_at: string | null
+          vehicle_count: number | null
           version: number | null
         }
         Insert: {
@@ -432,6 +433,7 @@ export type Database = {
           status?: string | null
           submitted_at?: string | null
           updated_at?: string | null
+          vehicle_count?: never
           version?: number | null
         }
         Update: {
@@ -455,6 +457,7 @@ export type Database = {
           status?: string | null
           submitted_at?: string | null
           updated_at?: string | null
+          vehicle_count?: never
           version?: number | null
         }
         Relationships: []

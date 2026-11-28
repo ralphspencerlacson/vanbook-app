@@ -38,6 +38,7 @@ export async function createSchema(db: PGlite) {
     await db.exec(await migration("20261127000300_operator_portal.sql"));
     await db.exec(await migration("20261128000100_account_profile.sql"));
     await db.exec(await migration("20261128000200_scoped_operator_documents.sql"));
+    await db.exec(await migration("20261128000300_dashboard_listing_counts.sql"));
   } catch (error) {
     await db.exec("rollback;");
     throw error;

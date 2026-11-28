@@ -159,3 +159,7 @@ Shared documents are collected once for the operator account. Each van receives 
 Initial approval verifies the required shared documents and first van's documents and front photo, then approves the operator and publishes the first van atomically. Additional vans are reviewed separately; their documents use the vehicle's version for concurrent-review protection. Replacing a van document or requesting vehicle corrections removes only that van from publication and availability. The operator's approval and other vans remain intact.
 
 The security-invoker `operator_verification_queue` view includes pending van counts. The default admin review queue includes approved operators with additional vans awaiting verification. Private document/storage permissions still allow only the owning operator and administrators; no documents or plate numbers are added to the public catalog.
+
+## Dashboard verification counts
+
+Migration `20261128000300_dashboard_listing_counts.sql` adds an exact `vehicle_count` to the security-invoker verification queue view. The private helper counts only the requested operator's vans and returns results only to that owner or an administrator. This lets the admin queue sort by total vans before pagination, independently of the 200-row management RPC limit. It adds no public ownership or document access.

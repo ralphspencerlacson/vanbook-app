@@ -19,7 +19,14 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await expect(page.getByRole("table")).toBeVisible();
   const scopeHeader = page.getByRole("columnheader", { name: "Applies to", exact: true });
   await expect(scopeHeader).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Filters/ })).toHaveAttribute("aria-expanded", "false");
+  await openFilters(page);
   await page.getByLabel("Filter by document scope").selectOption("van");
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  await expect(page.getByLabel("Filter by document scope")).not.toBeVisible();
+  await expect(page.locator(".dashboard-filter-summary")).toHaveText("Filters applied");
+  await openFilters(page);
+  await expect(page.getByLabel("Filter by document scope")).toHaveValue("van");
   await expect(page.locator(".requirements-table tbody tr")).toHaveCount(2);
   await expect(page.locator(".requirements-scope")).toHaveText(["Per van", "Per van"]);
   await page.getByRole("button", { name: "Clear filters", exact: true }).click();
@@ -77,6 +84,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await drawer.getByLabel("Visibility").selectOption("false");
   await drawer.getByRole("button", { name: "Save changes" }).click();
   await expect(extra).toContainText("Inactive");
+  await openFilters(page);
   await page
     .getByRole("searchbox", { name: "Search requirements" })
     .fill("insurance");
@@ -183,6 +191,10 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   ]);
   await customer.close();
 });
+async function openFilters(page: Page) {
+  const toggle = page.getByRole("button", { name: /^Filters/ });
+  if (await toggle.getAttribute("aria-expanded") === "false") await toggle.click();
+}
 async function register(page: Page, email: string, destination = "/account") {
   await page.request.post(fixture + "/test/account/create", {
     data: { email, password },
@@ -218,9 +230,11 @@ test("users table combines role and email filters, searches names, and preserves
   await page.getByRole("link", { name: "Next →", exact: true }).click();
   await expect(page).toHaveURL(/page=2/);
   await expect(page.locator(".users-table tbody tr")).toHaveCount(7);
+  await openFilters(page);
   await page
     .getByLabel("Account role", { exact: true })
     .selectOption("operator");
+  await openFilters(page);
   await page
     .getByLabel("Email status", { exact: true })
     .selectOption("unverified");
@@ -257,6 +271,7 @@ test("users table combines role and email filters, searches names, and preserves
   await expect(
     page.getByRole("heading", { name: "User accounts (32)" }),
   ).toBeVisible();
+  await openFilters(page);
   await page
     .getByLabel("Email status", { exact: true })
     .selectOption("verified");
@@ -345,6 +360,7 @@ test("roles separate customer, pending operator and administrator access, with a
   await expect(
     page.getByRole("button", { name: "Add administrator" }),
   ).toBeVisible();
+  await openFilters(page);
   await page
     .getByLabel("Account role", { exact: true })
     .selectOption("operator");
@@ -542,6 +558,7 @@ test("admin login centers the animated van once, then tabs skip it and verificat
   await expect(page.locator(".admin-review-result")).toContainText(
     "current insurance certificate",
   );
+  await openFilters(page);
   await page
     .getByRole("searchbox", { name: "Search operator or registration number" })
     .fill("CPC-2026-0002");
@@ -622,6 +639,7 @@ test("admin login centers the animated van once, then tabs skip it and verificat
       exact: true,
     }),
   ).toBeVisible();
+  await openFilters(page);
   await page.getByRole("link", { name: "This month", exact: true }).click();
   await expect(
     page.getByRole("link", { name: "This month", exact: true }),

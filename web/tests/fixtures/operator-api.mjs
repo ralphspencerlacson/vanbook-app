@@ -58,6 +58,9 @@ await db.exec(await readFile(new URL(
 await db.exec(await readFile(new URL(
   "../../../supabase/migrations/20261128000200_scoped_operator_documents.sql", import.meta.url,
 ), "utf8"));
+await db.exec(await readFile(new URL(
+  "../../../supabase/migrations/20261128000300_dashboard_listing_counts.sql", import.meta.url,
+), "utf8"));
 export async function saveFixtureAuthUser(value) {
   await db.query(
     "insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,$3,$4::jsonb) on conflict(id) do update set email=excluded.email,email_confirmed_at=excluded.email_confirmed_at,raw_user_meta_data=excluded.raw_user_meta_data",
@@ -171,6 +174,7 @@ export async function seedVerificationData() {
       "insert into public.operator_application_events(application_id,actor_id,from_status,to_status,note) values($1,$2,'draft','submitted','Application received')",
       [app.id, owner],
     );
+    await db.query("insert into public.operator_vehicles(operator_id,title,make,model,model_year,seats,location,plate_number,status) select $1,'Toyota Hiace '||n,'Toyota','Hiace',2025,15,$2,'TEST-'||$3||'-'||n,$4 from generate_series(1,$5::integer) n", [owner, area, String(index + 1), status === "approved" ? "published" : "draft", [2,1,0,3,1][index]]);
     if (index === 0)
       for (const [category] of checklist) {
         const path = `${owner}/${app.id}/${category}.pdf`;
@@ -472,8 +476,8 @@ export async function handleOperatorApi(req, res, url, body, actor, send) {
               .get("order")
               .split(",")
               .map((value) => {
-                const [column, direction] = value.split(".");
-                return `${identifier(column)} ${direction === "desc" ? "desc" : "asc"}`;
+                const [column, direction, nulls] = value.split(".");
+                return `${identifier(column)} ${direction === "desc" ? "desc" : "asc"}${nulls === "nullsfirst" ? " nulls first" : nulls === "nullslast" ? " nulls last" : ""}`;
               })
               .join(",");
         }

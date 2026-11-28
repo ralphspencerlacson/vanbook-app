@@ -7,6 +7,8 @@ import {
   type OperatorVehicle,
   type VehiclePhoto,
 } from "@/lib/operators/vehicles";
+import { DashboardFilters } from "./dashboard-filters";
+import { TableSortHeader } from "./table-sort-header";
 import { VehicleFields } from "./vehicle-fields";
 import { VehicleDocumentFields } from "./vehicle-document-fields";
 import type {
@@ -31,6 +33,67 @@ export function OperatorVehicleManager({
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [availability, setAvailability] = useState("all");
+  const [sort, setSort] = useState("updated");
+  const photoCounts = new Map<string, number>();
+  for (const photo of photos)
+    photoCounts.set(
+      photo.vehicle_id,
+      (photoCounts.get(photo.vehicle_id) ?? 0) + 1,
+    );
+  const statusLabel = (vehicle: OperatorVehicle) =>
+    vehicle.status === "published"
+      ? "Approved"
+      : vehicle.status === "rejected"
+        ? "Changes needed"
+        : "Pending review";
+  const activeFilters = [
+    !!search,
+    status !== "all",
+    availability !== "all",
+  ].filter(Boolean).length;
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("all");
+    setAvailability("all");
+    setSort("updated");
+  };
+  const rows = vehicles
+    .filter(
+      (vehicle) =>
+        [vehicle.title, vehicle.plate_number, vehicle.location]
+          .join(" ")
+          .toLowerCase()
+          .includes(search.trim().toLowerCase()) &&
+        (status === "all" ||
+          (status === "pending"
+            ? ["draft", "submitted"].includes(vehicle.status)
+            : vehicle.status === status)) &&
+        (availability === "all" ||
+          vehicle.available_for_requests === (availability === "available")),
+    )
+    .sort((a, b) => {
+      const column = sort.replace(/_desc$/, "");
+      const comparison =
+        column === "van"
+          ? a.title.localeCompare(b.title)
+          : column === "seats"
+            ? a.seats - b.seats
+            : column === "photos"
+              ? (photoCounts.get(a.id) ?? 0) - (photoCounts.get(b.id) ?? 0)
+              : column === "status"
+                ? statusLabel(a).localeCompare(statusLabel(b))
+                : column === "available"
+                  ? Number(b.available_for_requests) -
+                    Number(a.available_for_requests)
+                  : b.updated_at.localeCompare(a.updated_at);
+      return (
+        (sort.endsWith("_desc") ? -comparison : comparison) ||
+        a.id.localeCompare(b.id)
+      );
+    });
   return (
     <>
       <div className="operator-van-toolbar">
@@ -49,6 +112,80 @@ export function OperatorVehicleManager({
           {notice}
         </p>
       )}
+      <DashboardFilters activeCount={activeFilters}>
+        <div className="dashboard-list-controls">
+          <label>
+            <span className="filter-control-label">Search vans</span>
+            <input
+              type="search"
+              aria-label="Search vans"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Van, plate number or location"
+            />
+          </label>
+          <label>
+            <span className="filter-control-label">Verification status</span>
+            <select
+              aria-label="Filter vans by status"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="pending">Pending review</option>
+              <option value="published">Approved</option>
+              <option value="rejected">Changes needed</option>
+            </select>
+          </label>
+          <label>
+            <span className="filter-control-label">Availability</span>
+            <select
+              aria-label="Filter vans by availability"
+              value={availability}
+              onChange={(event) => setAvailability(event.target.value)}
+            >
+              <option value="all">All availability</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable</option>
+            </select>
+          </label>
+          <label>
+            <span className="filter-control-label">Sort vans</span>
+            <select
+              aria-label="Sort vans"
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+            >
+              {[
+                ["updated", "Recently updated"],
+                ["van", "Van: A–Z"],
+                ["van_desc", "Van: Z–A"],
+                ["seats", "Seats: fewest first"],
+                ["seats_desc", "Seats: most first"],
+                ["photos", "Photos: fewest first"],
+                ["photos_desc", "Photos: most first"],
+                ["status", "Status: A–Z"],
+                ["status_desc", "Status: Z–A"],
+                ["available", "Available first"],
+                ["available_desc", "Unavailable first"],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {(activeFilters > 0 || sort !== "updated") && (
+            <button
+              type="button"
+              className="filter-clear-button"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </DashboardFilters>
       <div className="operator-van-table-wrap">
         <table className="operator-van-table">
           <caption className="sr-only">
@@ -56,18 +193,43 @@ export function OperatorVehicleManager({
           </caption>
           <thead>
             <tr>
-              <th>Van</th>
-              <th>Seats</th>
-              <th>Photos</th>
-              <th>Status</th>
-              <th>Available for requests</th>
+              {[
+                { label: "Van", ascending: "van", descending: "van_desc" },
+                {
+                  label: "Seats",
+                  ascending: "seats",
+                  descending: "seats_desc",
+                },
+                {
+                  label: "Photos",
+                  ascending: "photos",
+                  descending: "photos_desc",
+                },
+                {
+                  label: "Status",
+                  ascending: "status",
+                  descending: "status_desc",
+                },
+                {
+                  label: "Available for requests",
+                  ascending: "available",
+                  descending: "available_desc",
+                },
+              ].map((column) => (
+                <TableSortHeader
+                  key={column.label}
+                  {...column}
+                  sort={sort}
+                  onSort={setSort}
+                />
+              ))}
               <th>
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
           <tbody>
-            {vehicles.map((vehicle) => {
+            {rows.map((vehicle) => {
               const front = photos.find(
                 (photo) =>
                   photo.vehicle_id === vehicle.id && photo.position === "front",
@@ -102,11 +264,7 @@ export function OperatorVehicleManager({
                   </th>
                   <td data-label="Seats">{vehicle.seats}</td>
                   <td data-label="Photos">
-                    {
-                      photos.filter((photo) => photo.vehicle_id === vehicle.id)
-                        .length
-                    }{" "}
-                    on file
+                    {photoCounts.get(vehicle.id) ?? 0} on file
                   </td>
                   <td data-label="Status">
                     <span
@@ -141,6 +299,18 @@ export function OperatorVehicleManager({
             })}
           </tbody>
         </table>
+        {!rows.length && vehicles.length > 0 && (
+          <div className="operator-empty">
+            <h2>No vans match your filters</h2>
+            <button
+              type="button"
+              className="filter-clear-button"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
         {!vehicles.length && (
           <div className="operator-empty">
             <h2>No vans added yet</h2>

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { requireWorkspace } from "@/lib/operators/server";
+import { DashboardFilters } from "./dashboard-filters";
+import { TableSortHeader } from "./table-sort-header";
+import { nextTableSort } from "@/lib/table-sort";
 import { AdminShell } from "./admin-shell";
 import { AdminMetric } from "./admin-verification";
 import {
@@ -90,28 +93,27 @@ async function Content({
       ? params.period
       : "week";
   const config = sections[section];
+  const columns = config.columns.map((label) => ({
+    label,
+    ascending: label.toLowerCase().replaceAll(" ", "_"),
+    descending: label.toLowerCase().replaceAll(" ", "_") + "_desc",
+  }));
+  const sort =
+    typeof params?.sort === "string" &&
+    columns.some(
+      (column) =>
+        column.ascending === params.sort || column.descending === params.sort,
+    )
+      ? params.sort
+      : "";
+  const href = (nextPeriod = period, nextSort = sort) =>
+    `/admin/${section}?` +
+    new URLSearchParams({
+      period: nextPeriod,
+      ...(nextSort ? { sort: nextSort } : {}),
+    });
   return (
-    <AdminShell
-      title={config.title}
-      description={config.description}
-      toolbar={
-        <nav className="admin-period-tabs" aria-label="Date range">
-          {[
-            ["today", "Today"],
-            ["week", "This week"],
-            ["month", "This month"],
-          ].map(([value, label]) => (
-            <Link
-              href={`/admin/${section}?period=${value}`}
-              key={value}
-              aria-current={period === value ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-      }
-    >
+    <AdminShell title={config.title} description={config.description}>
       <div className="admin-metrics">
         {config.metrics.map((label) => (
           <AdminMetric
@@ -135,14 +137,81 @@ async function Content({
         </section>
       )}
       <section className="admin-surface">
+        <div className="requirements-list-heading">
+          <h2>
+            {section === "fees"
+              ? "Transactions"
+              : section === "reports"
+                ? "Activity reports"
+                : section === "complaints"
+                  ? "Complaint listing"
+                  : "Booking listing"}
+          </h2>
+        </div>
+        <DashboardFilters
+          activeCount={Number(period !== "week")}
+          defaultOpen={period !== "week"}
+        >
+          <div className="dashboard-list-controls">
+            <nav className="admin-period-tabs" aria-label="Date range">
+              {[
+                ["today", "Today"],
+                ["week", "This week"],
+                ["month", "This month"],
+              ].map(([value, label]) => (
+                <Link
+                  href={href(value as typeof period)}
+                  key={value}
+                  aria-current={period === value ? "page" : undefined}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+            <form
+              action={`/admin/${section}`}
+              className="dashboard-list-controls"
+              key={sort}
+            >
+              <input type="hidden" name="period" value={period} />
+              <label>
+                <span className="filter-control-label">Sort listing</span>
+                <select
+                  name="sort"
+                  aria-label="Sort listing"
+                  defaultValue={sort}
+                >
+                  <option value="">Default order</option>
+                  {columns.flatMap((column) => [
+                    <option key={column.ascending} value={column.ascending}>
+                      {column.label}: ascending
+                    </option>,
+                    <option key={column.descending} value={column.descending}>
+                      {column.label}: descending
+                    </option>,
+                  ])}
+                </select>
+              </label>
+              <button type="submit" className="requirements-button">
+                Apply filters
+              </button>
+            </form>
+          </div>
+        </DashboardFilters>
         <div className="admin-table-scroll">
           <table className="admin-table">
             <thead>
               <tr>
-                {config.columns.map((column) => (
-                  <th key={column} scope="col">
-                    {column}
-                  </th>
+                {columns.map((column) => (
+                  <TableSortHeader
+                    key={column.label}
+                    {...column}
+                    sort={sort}
+                    href={href(
+                      period,
+                      nextTableSort(sort, column.ascending, column.descending),
+                    )}
+                  />
                 ))}
               </tr>
             </thead>

@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { saveRequirement } from "@/app/admin/actions";
 import type { DocumentRequirement } from "@/lib/operators/types";
+import { DashboardFilters } from "./dashboard-filters";
+import { TableSortHeader } from "./table-sort-header";
 
 function RequirementEditor({
   requirement,
@@ -152,14 +154,18 @@ function RequirementEditor({
                     </svg>
                   </span>
                   <strong>{option.label}</strong>
-                  <small id={`${fieldId}-scope-${option.value}-help`}>
+                  <small
+                    className="sr-only"
+                    id={`${fieldId}-scope-${option.value}-help`}
+                  >
                     {option.description}
                   </small>
                 </label>
               ))}
             </div>
             <p className="requirements-field-help">
-              Existing uploads are not reassigned when this changes.
+              Per user: once per operator. Per van: for each vehicle. Existing
+              uploads stay with their current owner.
             </p>
           </fieldset>
           <div>
@@ -307,9 +313,17 @@ export function DocumentRequirementsForm({
               ? a.scope.localeCompare(b.scope)
               : sort === "scope_van"
                 ? b.scope.localeCompare(a.scope)
-                : sort === "order_desc"
-                  ? b.sort_order - a.sort_order
-                  : a.sort_order - b.sort_order;
+                : sort === "required"
+                  ? Number(a.required) - Number(b.required)
+                  : sort === "required_desc"
+                    ? Number(b.required) - Number(a.required)
+                    : sort === "active"
+                      ? Number(b.active) - Number(a.active)
+                      : sort === "active_desc"
+                        ? Number(a.active) - Number(b.active)
+                        : sort === "order_desc"
+                          ? b.sort_order - a.sort_order
+                          : a.sort_order - b.sort_order;
       return (
         comparison ||
         a.sort_order - b.sort_order ||
@@ -394,86 +408,107 @@ export function DocumentRequirementsForm({
               <span aria-hidden="true">＋</span> Add requirement
             </button>
           </header>
-          <div className="requirements-filters requirements-expanded-filters">
-            <label className="requirements-search">
-              <span className="sr-only">Search requirements</span>
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <circle cx="8.5" cy="8.5" r="5.5" />
-                <path d="m13 13 4 4" />
-              </svg>
-              <input
-                type="search"
-                placeholder="Search documents…"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <label>
-              <span className="filter-control-label">Applies to</span>
-              <select
-                aria-label="Filter by document scope"
-                value={scope}
-                onChange={(event) => setScope(event.target.value)}
-              >
-                <option value="all">All documents</option>
-                <option value="user">Per user</option>
-                <option value="van">Per van</option>
-              </select>
-            </label>
-            <label>
-              <span className="filter-control-label">Submission rule</span>
-              <select
-                aria-label="Filter by submission rule"
-                value={rule}
-                onChange={(event) => setRule(event.target.value)}
-              >
-                <option value="all">All submission rules</option>
-                <option value="required">Required</option>
-                <option value="optional">Optional</option>
-              </select>
-            </label>
-            <label>
-              <span className="filter-control-label">Visibility</span>
-              <select
-                aria-label="Filter by visibility"
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value)}
-              >
-                <option value="all">All visibility</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </label>
-            <label>
-              <span className="filter-control-label">Sort documents</span>
-              <select
-                aria-label="Sort documents"
-                value={sort}
-                onChange={(event) => setSort(event.target.value)}
-              >
-                <option value="order">Display order</option>
-                <option value="order_desc">Display order: highest first</option>
-                <option value="name">Name: A–Z</option>
-                <option value="name_desc">Name: Z–A</option>
-                <option value="scope_user">Applies to: per user first</option>
-                <option value="scope_van">Applies to: per van first</option>
-              </select>
-            </label>
-            {filtered && (
-              <button
-                className="filter-clear-button"
-                onClick={() => {
-                  setSearch("");
-                  setScope("all");
-                  setRule("all");
-                  setVisibility("all");
-                  setSort("order");
-                }}
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
+          <DashboardFilters
+            activeCount={
+              [
+                !!search,
+                scope !== "all",
+                rule !== "all",
+                visibility !== "all",
+              ].filter(Boolean).length
+            }
+          >
+            <div className="requirements-filters requirements-expanded-filters">
+              <label className="requirements-search">
+                <span className="sr-only">Search requirements</span>
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <circle cx="8.5" cy="8.5" r="5.5" />
+                  <path d="m13 13 4 4" />
+                </svg>
+                <input
+                  type="search"
+                  placeholder="Search documents…"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+              <label>
+                <span className="filter-control-label">Applies to</span>
+                <select
+                  aria-label="Filter by document scope"
+                  value={scope}
+                  onChange={(event) => setScope(event.target.value)}
+                >
+                  <option value="all">All documents</option>
+                  <option value="user">Per user</option>
+                  <option value="van">Per van</option>
+                </select>
+              </label>
+              <label>
+                <span className="filter-control-label">Submission rule</span>
+                <select
+                  aria-label="Filter by submission rule"
+                  value={rule}
+                  onChange={(event) => setRule(event.target.value)}
+                >
+                  <option value="all">All submission rules</option>
+                  <option value="required">Required</option>
+                  <option value="optional">Optional</option>
+                </select>
+              </label>
+              <label>
+                <span className="filter-control-label">Visibility</span>
+                <select
+                  aria-label="Filter by visibility"
+                  value={visibility}
+                  onChange={(event) => setVisibility(event.target.value)}
+                >
+                  <option value="all">All visibility</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <label>
+                <span className="filter-control-label">Sort documents</span>
+                <select
+                  aria-label="Sort documents"
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value)}
+                >
+                  <option value="order">Display order</option>
+                  <option value="order_desc">
+                    Display order: highest first
+                  </option>
+                  <option value="name">Name: A–Z</option>
+                  <option value="name_desc">Name: Z–A</option>
+                  <option value="scope_user">Applies to: per user first</option>
+                  <option value="scope_van">Applies to: per van first</option>
+                  <option value="required">Submission: optional first</option>
+                  <option value="required_desc">
+                    Submission: required first
+                  </option>
+                  <option value="active">Visibility: active first</option>
+                  <option value="active_desc">
+                    Visibility: inactive first
+                  </option>
+                </select>
+              </label>
+              {filtered && (
+                <button
+                  className="filter-clear-button"
+                  onClick={() => {
+                    setSearch("");
+                    setScope("all");
+                    setRule("all");
+                    setVisibility("all");
+                    setSort("order");
+                  }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </DashboardFilters>
           <table className="requirements-table">
             <caption className="sr-only">
               Configured operator documents with their scope, submission rules,
@@ -497,42 +532,24 @@ export function DocumentRequirementsForm({
                     ascending: "scope_user",
                     descending: "scope_van",
                   },
+                  {
+                    label: "Submission",
+                    ascending: "required",
+                    descending: "required_desc",
+                  },
+                  {
+                    label: "Visibility",
+                    ascending: "active",
+                    descending: "active_desc",
+                  },
                 ].map((column) => (
-                  <th
+                  <TableSortHeader
                     key={column.label}
-                    scope="col"
-                    aria-sort={
-                      sort === column.ascending
-                        ? "ascending"
-                        : sort === column.descending
-                          ? "descending"
-                          : undefined
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="requirements-sort-button"
-                      onClick={() =>
-                        setSort(
-                          sort === column.ascending
-                            ? column.descending
-                            : column.ascending,
-                        )
-                      }
-                    >
-                      {column.label}
-                      <span aria-hidden="true">
-                        {sort === column.ascending
-                          ? "↑"
-                          : sort === column.descending
-                            ? "↓"
-                            : "↕"}
-                      </span>
-                    </button>
-                  </th>
+                    {...column}
+                    sort={sort}
+                    onSort={setSort}
+                  />
                 ))}
-                <th scope="col">Submission</th>
-                <th scope="col">Visibility</th>
                 <th scope="col">
                   <span className="sr-only">Actions</span>
                 </th>

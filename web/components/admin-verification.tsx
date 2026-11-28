@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DashboardFilters } from "./dashboard-filters";
+import { TableSortHeader } from "./table-sort-header";
+import { nextTableSort } from "@/lib/table-sort";
 import { AdminShell } from "./admin-shell";
 import { OperatorReviewPanel } from "./operator-review-panel";
 import type { OperatorVehicle, VehiclePhoto } from "@/lib/operators/vehicles";
@@ -14,6 +17,47 @@ import {
 } from "@/lib/operators/types";
 import type { requireWorkspace } from "@/lib/operators/server";
 
+const verificationSorts = {
+  updated: {
+    column: "updated_at",
+    ascending: false,
+    label: "Recently updated",
+  },
+  operator: {
+    column: "business_name",
+    ascending: true,
+    label: "Operator: A–Z",
+  },
+  operator_desc: {
+    column: "business_name",
+    ascending: false,
+    label: "Operator: Z–A",
+  },
+  area: { column: "operating_base", ascending: true, label: "Area: A–Z" },
+  area_desc: { column: "operating_base", ascending: false, label: "Area: Z–A" },
+  vans: {
+    column: "vehicle_count",
+    ascending: true,
+    label: "Vans: fewest first",
+  },
+  vans_desc: {
+    column: "vehicle_count",
+    ascending: false,
+    label: "Vans: most first",
+  },
+  submitted: {
+    column: "submitted_at",
+    ascending: true,
+    label: "Submitted: oldest first",
+  },
+  submitted_desc: {
+    column: "submitted_at",
+    ascending: false,
+    label: "Submitted: newest first",
+  },
+  status: { column: "status", ascending: true, label: "Status: A–Z" },
+  status_desc: { column: "status", ascending: false, label: "Status: Z–A" },
+} as const;
 type Params = Record<string, string | string[] | undefined>;
 export function AdminMetric({
   label,
@@ -69,6 +113,15 @@ export async function AdminVerification({
       : "submitted";
   const search =
     typeof params.search === "string" ? params.search.trim().slice(0, 100) : "";
+  const sort =
+    typeof params.sort === "string" &&
+    Object.hasOwn(verificationSorts, params.sort)
+      ? (params.sort as keyof typeof verificationSorts)
+      : "updated";
+  const ordering = verificationSorts[sort];
+  const activeFilters = [!!search, status !== "submitted"].filter(
+    Boolean,
+  ).length;
   const page = Math.max(
     1,
     Math.min(10000, Number.parseInt(String(params.page ?? "1"), 10) || 1),
@@ -87,7 +140,10 @@ export async function AdminVerification({
   let query = actor.supabase
     .from("operator_verification_queue")
     .select("*", { count: "exact" })
-    .order("updated_at", { ascending: false })
+    .order(ordering.column, {
+      ascending: ordering.ascending,
+      nullsFirst: false,
+    })
     .order("id", { ascending: false })
     .range((page - 1) * 25, page * 25 - 1);
   if (status === "submitted")
@@ -101,65 +157,49 @@ export async function AdminVerification({
       `business_name.ilike.${pattern},registration_number.ilike.${pattern}`,
     );
   }
-  const [result, waiting, approved, aged, rejected, vehicles] =
-    await Promise.all([
-      query,
-      actor.supabase
-        .from("operator_verification_queue")
-        .select("id", { count: "exact", head: true })
-        .or(
-          "status.eq.submitted,and(status.eq.approved,pending_vehicle_count.gt.0)",
-        ),
-      actor.supabase
-        .from("operator_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "approved"),
-      actor.supabase
-        .from("operator_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "submitted")
-        .lt(
-          "submitted_at",
-          new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(),
-        ),
-      actor.supabase
-        .from("operator_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "rejected")
-        .gte("reviewed_at", monthStart),
-      actor.supabase.rpc("get_managed_vehicles"),
-    ]);
+  const [result, waiting, approved, aged, rejected] = await Promise.all([
+    query,
+    actor.supabase
+      .from("operator_verification_queue")
+      .select("id", { count: "exact", head: true })
+      .or(
+        "status.eq.submitted,and(status.eq.approved,pending_vehicle_count.gt.0)",
+      ),
+    actor.supabase
+      .from("operator_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved"),
+    actor.supabase
+      .from("operator_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "submitted")
+      .lt(
+        "submitted_at",
+        new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(),
+      ),
+    actor.supabase
+      .from("operator_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "rejected")
+      .gte("reviewed_at", monthStart),
+  ]);
   if ([result, waiting, approved, aged, rejected].some((r) => r.error))
     throw new Error("Unable to load operator verification.");
   const rows = result.data as (OperatorApplication & {
     pending_vehicle_count: number;
+    vehicle_count: number;
   })[];
-  // This existing management RPC caps its response at 200. Show no per-operator
-  // count if it may be truncated, rather than presenting incomplete totals.
-  const vehicleCounts: Map<string, number> | null =
-    !vehicles.error &&
-    Array.isArray(vehicles.data) &&
-    vehicles.data.length < 200
-      ? new Map<string, number>()
-      : null;
-  if (vehicleCounts)
-    for (const vehicle of vehicles.data as { operator_id: string }[])
-      vehicleCounts.set(
-        vehicle.operator_id,
-        (vehicleCounts.get(vehicle.operator_id) ?? 0) + 1,
-      );
-  let app: OperatorApplication | undefined = selected
-    ? rows.find((r) => r.id === selected)
-    : rows[0];
+  let app: (OperatorApplication & { vehicle_count: number }) | undefined =
+    selected ? rows.find((r) => r.id === selected) : rows[0];
   if (selected && !app) {
     const record = await actor.supabase
-      .from("operator_applications")
+      .from("operator_verification_queue")
       .select()
       .eq("id", selected)
       .maybeSingle();
     if (record.error) throw new Error("Unable to load this operator.");
     if (!record.data) notFound();
-    app = record.data as OperatorApplication;
+    app = record.data as OperatorApplication & { vehicle_count: number };
   }
   const [docs, requirements, events] = await Promise.all([
     app
@@ -206,10 +246,12 @@ export async function AdminVerification({
     operator?: string;
     page?: number;
     status?: string;
+    sort?: string;
   }) =>
     "/admin?" +
     new URLSearchParams({
       status: options.status ?? status,
+      sort: options.sort ?? sort,
       ...(search ? { search } : {}),
       page: String(options.page ?? page),
       ...(options.operator ? { operator: options.operator } : {}),
@@ -218,26 +260,6 @@ export async function AdminVerification({
     <AdminShell
       title="Operator verification"
       description="Review operator credentials, supporting documents, and business details before approval."
-      toolbar={
-        <form action="/admin" className="admin-search" role="search">
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <circle cx="8.5" cy="8.5" r="5.5" />
-            <path d="m13 13 4 4" />
-          </svg>
-          <input
-            type="search"
-            name="search"
-            aria-label="Search operator or registration number"
-            placeholder="Search operator or registration no."
-            defaultValue={search}
-            maxLength={100}
-          />
-          <input type="hidden" name="status" value={status} />
-          <button type="submit" className="sr-only">
-            Search
-          </button>
-        </form>
-      }
     >
       <div className="admin-metrics">
         <AdminMetric
@@ -271,36 +293,115 @@ export async function AdminVerification({
               <h2>Operators</h2>
               <span>{result.count ?? 0} applications</span>
             </div>
-            <form action="/admin" className="admin-status-filter">
-              <label htmlFor="queue-status" className="sr-only">
-                Application status
-              </label>
-              <select id="queue-status" name="status" defaultValue={status}>
-                {[
-                  ["submitted", "Waiting for review"],
-                  ["all", "All applications"],
-                  ...applicationStatuses
-                    .filter((s) => s !== "submitted")
-                    .map((s) => [s, statusLabels[s]]),
-                ].map(([value, label]) => (
-                  <option value={value} key={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              {search && <input type="hidden" name="search" value={search} />}
-              <button type="submit">Apply</button>
-            </form>
           </div>
+          <DashboardFilters
+            activeCount={activeFilters}
+            defaultOpen={activeFilters > 0}
+          >
+            <form
+              action="/admin"
+              className="dashboard-list-controls"
+              key={`${search}:${status}:${sort}`}
+            >
+              <label>
+                <span className="filter-control-label">Search operators</span>
+                <input
+                  type="search"
+                  name="search"
+                  aria-label="Search operator or registration number"
+                  placeholder="Name or registration no."
+                  defaultValue={search}
+                  maxLength={100}
+                />
+              </label>
+              <label>
+                <span className="filter-control-label">Application status</span>
+                <select
+                  name="status"
+                  aria-label="Application status"
+                  defaultValue={status}
+                >
+                  <option value="submitted">Waiting for review</option>
+                  <option value="all">All applications</option>
+                  {applicationStatuses
+                    .filter((value) => value !== "submitted")
+                    .map((value) => (
+                      <option key={value} value={value}>
+                        {statusLabels[value]}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label>
+                <span className="filter-control-label">Sort operators</span>
+                <select
+                  name="sort"
+                  aria-label="Sort operators"
+                  defaultValue={sort}
+                >
+                  {Object.entries(verificationSorts).map(([value, option]) => (
+                    <option key={value} value={value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" className="requirements-button">
+                Apply filters
+              </button>
+              {(activeFilters > 0 || sort !== "updated") && (
+                <Link href="/admin" className="filter-clear-button">
+                  Clear filters
+                </Link>
+              )}
+            </form>
+          </DashboardFilters>
           <div className="admin-table-scroll">
             <table className="admin-table operator-queue-table">
               <thead>
                 <tr>
-                  <th scope="col">Operator</th>
-                  <th scope="col">Area</th>
-                  <th scope="col">Vans</th>
-                  <th scope="col">Submitted</th>
-                  <th scope="col">Status</th>
+                  {[
+                    {
+                      label: "Operator",
+                      ascending: "operator",
+                      descending: "operator_desc",
+                    },
+                    {
+                      label: "Area",
+                      ascending: "area",
+                      descending: "area_desc",
+                    },
+                    {
+                      label: "Vans",
+                      ascending: "vans",
+                      descending: "vans_desc",
+                    },
+                    {
+                      label: "Submitted",
+                      ascending: "submitted",
+                      descending: "submitted_desc",
+                    },
+                    {
+                      label: "Status",
+                      ascending: "status",
+                      descending: "status_desc",
+                    },
+                  ].map((column) => (
+                    <TableSortHeader
+                      key={column.label}
+                      {...column}
+                      sort={sort}
+                      href={href({
+                        sort: nextTableSort(
+                          sort,
+                          column.ascending,
+                          column.descending,
+                        ),
+                        page: 1,
+                        operator: selected,
+                      })}
+                    />
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -329,11 +430,7 @@ export async function AdminVerification({
                       )}
                     </td>
                     <td>{row.operating_base || "—"}</td>
-                    <td>
-                      {vehicleCounts
-                        ? (vehicleCounts.get(row.owner_id) ?? 0)
-                        : "—"}
-                    </td>
+                    <td>{row.vehicle_count}</td>
                     <td>
                       <time dateTime={row.submitted_at ?? undefined}>
                         {shortDate(row.submitted_at)}
@@ -404,9 +501,7 @@ export async function AdminVerification({
                 ),
             )}
             events={events.data as ApplicationEvent[]}
-            vehicleCount={
-              vehicleCounts ? (vehicleCounts.get(app.owner_id) ?? 0) : undefined
-            }
+            vehicleCount={app.vehicle_count}
           />
         ) : (
           <section className="admin-review-panel admin-selection-empty">

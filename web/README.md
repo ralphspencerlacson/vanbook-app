@@ -290,3 +290,9 @@ Administrators set each document requirement to **Per user** or **Per van**. Reg
 Initial approval publishes the operator's first van together with approving the operator. Later vans appear in the admin waiting queue as **Additional van review** and remain hidden until individually verified. Corrections to an additional van do not reopen the operator application.
 
 Apply the scoped-document migration described in `../supabase/README.md` before running this version against an existing database. Database tests cover scope validation, required uploads per vehicle, initial approval, additional-van corrections, upload replacement, concurrency, and cross-operator access. The operator journey browser test covers registration through second-van approval.
+
+## Dashboard table controls
+
+Documents, Users, verification, My vans, and the admin section tables share sortable column headers and a collapsible **Filters** panel. Action columns stay separate. Hidden filters keep their values and continue applying; a count remains visible on the toggle. Sort menus inside the panel also provide access on mobile, where some tables use cards instead of column headers.
+
+Users and verification apply sorting before pagination, preserve filters in sort/pagination links, and return to page one when the sort changes. My vans sorts and filters the loaded fleet in the browser. The booking, fee, complaint, and report sections retain their empty states while exposing date-range and sort controls for their current layouts. Apply the dashboard count migration before using verification sorting against an existing database.
