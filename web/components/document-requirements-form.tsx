@@ -101,26 +101,67 @@ function RequirementEditor({
               disabled={pending}
             />
           </div>
-          <div>
-            <label className="field-label" htmlFor={`${fieldId}-scope`}>
-              Applies to
-            </label>
-            <select
-              id={`${fieldId}-scope`}
-              name="scope"
-              className="field-input"
-              defaultValue={requirement?.scope ?? "user"}
-              disabled={pending}
-            >
-              <option value="user">Per user</option>
-              <option value="van">Per van</option>
-            </select>
+          <fieldset className="requirement-scope-field" disabled={pending}>
+            <legend className="field-label">Applies to</legend>
+            <div className="requirement-scope-options">
+              {[
+                {
+                  value: "user",
+                  label: "Per user",
+                  description: "Upload once for the operator account.",
+                },
+                {
+                  value: "van",
+                  label: "Per van",
+                  description: "Upload separately for every vehicle.",
+                },
+              ].map((option) => (
+                <label key={option.value} className="requirement-scope-option">
+                  <input
+                    type="radio"
+                    name="scope"
+                    value={option.value}
+                    aria-label={option.label}
+                    aria-describedby={`${fieldId}-scope-${option.value}-help`}
+                    defaultChecked={
+                      (requirement?.scope ?? "user") === option.value
+                    }
+                    required
+                  />
+                  <span className="requirement-scope-icon" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      {option.value === "user" ? (
+                        <>
+                          <circle cx="12" cy="8" r="3.5" />
+                          <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="M3 17V7a2 2 0 0 1 2-2h12l4 6v6h-2m-12 0h8M3 17h1M3 11h18M10 5v6M17 5v6" />
+                          <circle cx="6" cy="17" r="2" />
+                          <circle cx="17" cy="17" r="2" />
+                        </>
+                      )}
+                    </svg>
+                  </span>
+                  <strong>{option.label}</strong>
+                  <small id={`${fieldId}-scope-${option.value}-help`}>
+                    {option.description}
+                  </small>
+                </label>
+              ))}
+            </div>
             <p className="requirements-field-help">
-              Per user: upload once for the operator account. Per van: upload
-              for each vehicle. Existing uploads are not reassigned when this
-              changes.
+              Existing uploads are not reassigned when this changes.
             </p>
-          </div>
+          </fieldset>
           <div>
             <label className="field-label" htmlFor={`${fieldId}-description`}>
               Upload instructions <span>(optional)</span>
@@ -238,6 +279,7 @@ export function DocumentRequirementsForm({
   const [search, setSearch] = useState("");
   const [rule, setRule] = useState("all");
   const [visibility, setVisibility] = useState("all");
+  const [scope, setScope] = useState("all");
   const [sort, setSort] = useState("order");
   const [editing, setEditing] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -250,19 +292,37 @@ export function DocumentRequirementsForm({
         .includes(search.toLowerCase().trim());
       return (
         matches &&
+        (scope === "all" || item.scope === scope) &&
         (rule === "all" || item.required === (rule === "required")) &&
         (visibility === "all" || item.active === (visibility === "active"))
       );
     })
-    .sort((a, b) =>
-      sort === "name"
-        ? a.label.localeCompare(b.label)
-        : sort === "name_desc"
-          ? b.label.localeCompare(a.label)
-          : a.sort_order - b.sort_order || a.label.localeCompare(b.label),
-    );
+    .sort((a, b) => {
+      const comparison =
+        sort === "name"
+          ? a.label.localeCompare(b.label)
+          : sort === "name_desc"
+            ? b.label.localeCompare(a.label)
+            : sort === "scope_user"
+              ? a.scope.localeCompare(b.scope)
+              : sort === "scope_van"
+                ? b.scope.localeCompare(a.scope)
+                : sort === "order_desc"
+                  ? b.sort_order - a.sort_order
+                  : a.sort_order - b.sort_order;
+      return (
+        comparison ||
+        a.sort_order - b.sort_order ||
+        a.label.localeCompare(b.label) ||
+        a.code.localeCompare(b.code)
+      );
+    });
   const filtered =
-    !!search || rule !== "all" || visibility !== "all" || sort !== "order";
+    !!search ||
+    scope !== "all" ||
+    rule !== "all" ||
+    visibility !== "all" ||
+    sort !== "order";
   const selected = requirements.find((item) => item.code === editing);
   const close = () => {
     setEditing(null);
@@ -349,6 +409,18 @@ export function DocumentRequirementsForm({
               />
             </label>
             <label>
+              <span className="filter-control-label">Applies to</span>
+              <select
+                aria-label="Filter by document scope"
+                value={scope}
+                onChange={(event) => setScope(event.target.value)}
+              >
+                <option value="all">All documents</option>
+                <option value="user">Per user</option>
+                <option value="van">Per van</option>
+              </select>
+            </label>
+            <label>
               <span className="filter-control-label">Submission rule</span>
               <select
                 aria-label="Filter by submission rule"
@@ -380,8 +452,11 @@ export function DocumentRequirementsForm({
                 onChange={(event) => setSort(event.target.value)}
               >
                 <option value="order">Display order</option>
+                <option value="order_desc">Display order: highest first</option>
                 <option value="name">Name: A–Z</option>
                 <option value="name_desc">Name: Z–A</option>
+                <option value="scope_user">Applies to: per user first</option>
+                <option value="scope_van">Applies to: per van first</option>
               </select>
             </label>
             {filtered && (
@@ -389,6 +464,7 @@ export function DocumentRequirementsForm({
                 className="filter-clear-button"
                 onClick={() => {
                   setSearch("");
+                  setScope("all");
                   setRule("all");
                   setVisibility("all");
                   setSort("order");
@@ -400,13 +476,61 @@ export function DocumentRequirementsForm({
           </div>
           <table className="requirements-table">
             <caption className="sr-only">
-              Configured operator documents with their submission rules and
-              visibility
+              Configured operator documents with their scope, submission rules,
+              and visibility
             </caption>
             <thead>
               <tr>
-                <th scope="col">Order</th>
-                <th scope="col">Document</th>
+                {[
+                  {
+                    label: "Order",
+                    ascending: "order",
+                    descending: "order_desc",
+                  },
+                  {
+                    label: "Document",
+                    ascending: "name",
+                    descending: "name_desc",
+                  },
+                  {
+                    label: "Applies to",
+                    ascending: "scope_user",
+                    descending: "scope_van",
+                  },
+                ].map((column) => (
+                  <th
+                    key={column.label}
+                    scope="col"
+                    aria-sort={
+                      sort === column.ascending
+                        ? "ascending"
+                        : sort === column.descending
+                          ? "descending"
+                          : undefined
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="requirements-sort-button"
+                      onClick={() =>
+                        setSort(
+                          sort === column.ascending
+                            ? column.descending
+                            : column.ascending,
+                        )
+                      }
+                    >
+                      {column.label}
+                      <span aria-hidden="true">
+                        {sort === column.ascending
+                          ? "↑"
+                          : sort === column.descending
+                            ? "↓"
+                            : "↕"}
+                      </span>
+                    </button>
+                  </th>
+                ))}
                 <th scope="col">Submission</th>
                 <th scope="col">Visibility</th>
                 <th scope="col">
@@ -438,11 +562,13 @@ export function DocumentRequirementsForm({
                     <span className="requirements-document-name">
                       {item.label}
                     </span>
-                    <small>
-                      {item.scope === "van" ? "Per van" : "Per user"}
-                    </small>
                     {item.description && <p>{item.description}</p>}
                   </th>
+                  <td className="requirements-scope" data-label="Applies to">
+                    <span className={`requirement-badge is-${item.scope}`}>
+                      {item.scope === "van" ? "Per van" : "Per user"}
+                    </span>
+                  </td>
                   <td>
                     <span
                       className={`requirement-badge ${item.required ? "is-required" : "is-optional"}`}

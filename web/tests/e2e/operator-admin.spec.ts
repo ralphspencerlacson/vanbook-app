@@ -17,6 +17,21 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await register(page, adminEmail, "/admin");
   await page.getByRole("link", { name: "Documents", exact: true }).click();
   await expect(page.getByRole("table")).toBeVisible();
+  const scopeHeader = page.getByRole("columnheader", { name: "Applies to", exact: true });
+  await expect(scopeHeader).toBeVisible();
+  await page.getByLabel("Filter by document scope").selectOption("van");
+  await expect(page.locator(".requirements-table tbody tr")).toHaveCount(2);
+  await expect(page.locator(".requirements-scope")).toHaveText(["Per van", "Per van"]);
+  await page.getByRole("button", { name: "Clear filters", exact: true }).click();
+  await scopeHeader.getByRole("button").click();
+  await expect(scopeHeader).toHaveAttribute("aria-sort", "ascending");
+  await expect(page.locator(".requirements-scope").first()).toHaveText("Per user");
+  await scopeHeader.getByRole("button").click();
+  await expect(scopeHeader).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator(".requirements-scope").first()).toHaveText("Per van");
+  await page.getByLabel("Sort documents").selectOption("scope_user");
+  await expect(page.locator(".requirements-scope").first()).toHaveText("Per user");
+  await page.getByRole("button", { name: "Clear filters", exact: true }).click();
   const insurance = page
     .getByRole("row")
     .filter({ hasText: "Insurance (CTPL + passenger)" });
@@ -26,8 +41,11 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await insurance.click();
   const drawer = page.getByRole("dialog", { name: "Edit requirement" });
   await expect(drawer).toBeVisible();
-  await expect(drawer.getByLabel("Applies to")).toHaveValue("van");
-  await drawer.getByLabel("Applies to").selectOption("user");
+  await expect(drawer.getByRole("group", { name: "Applies to", exact: true })).toBeVisible();
+  await expect(drawer.getByRole("radio", { name: "Per van", exact: true })).toBeChecked();
+  await drawer.getByRole("radio", { name: "Per van", exact: true }).focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(drawer.getByRole("radio", { name: "Per user", exact: true })).toBeChecked();
   await drawer
     .getByLabel("Upload instructions")
     .fill("Upload a readable insurance certificate.");
@@ -46,6 +64,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
     .getByRole("button", { name: "Add requirement", exact: true })
     .click();
   const add = page.getByRole("dialog", { name: "Add requirement" });
+  await expect(add.getByRole("radio", { name: "Per user", exact: true })).toBeChecked();
   await add.getByLabel("Document name").fill("Extra certificate");
   await add.getByLabel("Submission rule").selectOption("true");
   await add.getByLabel("Display order").fill("2");
@@ -96,6 +115,7 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   });
   await insurance.click();
   await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole("radio", { name: "Per user", exact: true })).toBeChecked();
   await expect(drawer).toHaveCSS("transform", "none");
   await page.screenshot({
     path: "test-results/document-checklist-drawer-desktop.png",
@@ -107,6 +127,12 @@ test("document checklist uses a table and row edit drawer, and drives registrati
   await expect(drawer).toBeVisible();
   await expect(drawer).toHaveCSS("transform", "none");
   await page.setViewportSize({ width: 375, height: 812 });
+  await expect(drawer).toHaveCSS("scrollbar-width", "none");
+  await drawer.evaluate((node) => { node.scrollTop = 0; });
+  await drawer.hover();
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => drawer.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  await drawer.evaluate((node) => { node.scrollTop = 0; });
   await page.screenshot({
     path: "test-results/document-checklist-drawer-mobile.png",
   });
@@ -114,6 +140,12 @@ test("document checklist uses a table and row edit drawer, and drives registrati
     await drawer.evaluate((node) => node.getBoundingClientRect().width),
   ).toBeLessThanOrEqual(375);
   await drawer.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.locator("html")).toHaveCSS("scrollbar-width", "none");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.mouse.move(300, 400);
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: "test-results/document-checklist-mobile.png",
     fullPage: true,
